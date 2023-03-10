@@ -129,6 +129,7 @@ public :: ocn_ice_bnd_type_chksum, atm_ice_bnd_type_chksum
 public :: lnd_ice_bnd_type_chksum, ice_data_type_chksum
 public :: update_ice_atm_deposition_flux
 public :: unpack_ocean_ice_boundary, exchange_slow_to_fast_ice, set_ice_surface_fields
+public :: unpack_ocean_ice_boundary_calved_shelf_bergs
 public :: ice_model_fast_cleanup, unpack_land_ice_boundary
 public :: exchange_fast_to_slow_ice, update_ice_model_slow
 public :: update_ice_slow_thermo, update_ice_dynamics_trans
@@ -372,9 +373,10 @@ end subroutine ice_model_fast_cleanup
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
 !> unpack_land_ice_bdry converts the information in a publicly visible
 !! land_ice_boundary_type into an internally visible fast_ice_avg_type variable.
-subroutine unpack_land_ice_boundary(Ice, LIB)
+subroutine unpack_land_ice_boundary(Ice, LIB, calve_ice_shelf_bergs)
   type(ice_data_type),          intent(inout) :: Ice !< The publicly visible ice data type.
   type(land_ice_boundary_type), intent(in)    :: LIB !< The land ice boundary type that is being unpacked.
+  logical, intent(in) :: calve_ice_shelf_bergs !< If true, bergs calve from ice shelf, not frozen flux from land
 
   type(fast_ice_avg_type), pointer :: FIA => NULL()
   type(SIS_hor_grid_type), pointer :: G => NULL()
@@ -401,16 +403,20 @@ subroutine unpack_land_ice_boundary(Ice, LIB)
   do j=jsc,jec ; do i=isc,iec ; if (G%mask2dT(i,j) > 0.0) then
     i2 = i+i_off ; j2 = j+j_off
     FIA%runoff(i,j)  = US%kg_m2s_to_RZ_T*LIB%runoff(i2,j2)
-    FIA%calving(i,j) = US%kg_m2s_to_RZ_T*LIB%calving(i2,j2)
     FIA%runoff_hflx(i,j)  = US%W_m2_to_QRZ_T*LIB%runoff_hflx(i2,j2)
-    FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*LIB%calving_hflx(i2,j2)
+    if (.not. calve_ice_shelf_bergs) then
+      FIA%calving(i,j) = US%kg_m2s_to_RZ_T*LIB%calving(i2,j2)
+      FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*LIB%calving_hflx(i2,j2)
+    endif
   else
     ! This is a land point from the perspective of the sea-ice.
     ! At some point it might make sense to check for non-zero fluxes, which
     ! might indicate regridding errors.  However, bad-data values are also
     ! non-zero and should not be flagged.
-    FIA%runoff(i,j)  = 0.0 ; FIA%calving(i,j) = 0.0
-    FIA%runoff_hflx(i,j)  = 0.0 ; FIA%calving_hflx(i,j) = 0.0
+    FIA%runoff(i,j)  = 0.0 ; FIA%runoff_hflx(i,j)  = 0.0
+    if (.not. calve_ice_shelf_bergs) then
+      FIA%calving(i,j) = 0.0; FIA%calving_hflx(i,j) = 0.0
+    endif
   endif ; enddo ; enddo
 
   if (Ice%fCS%debug) then
@@ -956,6 +962,57 @@ subroutine unpack_ocn_ice_bdry(OIB, OSS, ITV, G, US, specified_ice, ocean_fields
   call cpu_clock_end(ice_clock_slow) ; call cpu_clock_end(iceClock)
 
 end subroutine unpack_ocn_ice_bdry
+
+!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
+!> unpack_ocean_ice_boundary_calved_shelf_bergs converts the calving information in a publicly visible
+!! ocean_ice_boundary_type into an internally visible fast_ice_avg_type variable.
+subroutine unpack_ocean_ice_boundary_calved_shelf_bergs(Ice, OIB)
+  type(ice_data_type),          intent(inout) :: Ice !< The publicly visible ice data type.
+  type(ocean_ice_boundary_type), intent(in)    :: OIB !< The ocean ice boundary type that is being unpacked.
+
+  type(fast_ice_avg_type), pointer :: FIA => NULL()
+  type(SIS_hor_grid_type), pointer :: G => NULL()
+  type(unit_scale_type),   pointer :: US => NULL()
+
+  integer :: i, j, k, m, n, i2, j2, k2, isc, iec, jsc, jec, i_off, j_off
+
+  if (.not.associated(Ice%fCS)) call SIS_error(FATAL, &
+      "The pointer to Ice%fCS must be associated in unpack_ocean_ice_boundary_calved_shelf_bergs.")
+  if (.not.associated(Ice%fCS%FIA)) call SIS_error(FATAL, &
+      "The pointer to Ice%fCS%FIA must be associated in unpack_ocean_ice_boundary_calved_shelf_berg.")
+  if (.not.associated(Ice%fCS%G)) call SIS_error(FATAL, &
+      "The pointer to Ice%fCS%G must be associated in unpack_ocean_ice_boundary_calved_shelf_berg.")
+
+  FIA => Ice%fCS%FIA ; G => Ice%fCS%G
+  US => Ice%fCS%US
+
+  isc = G%isc ; iec = G%iec ; jsc = G%jsc ; jec = G%jec
+
+  ! Store liquid runoff and other fluxes from the land to the ice or ocean.
+  i_off = LBOUND(OIB%calving,1) - G%isc ; j_off = LBOUND(OIB%calving,2) - G%jsc
+  !$OMP parallel do default(none) shared(isc,iec,jsc,jec,FIA,OIB,i_off,j_off,G,US) &
+  !$OMP                          private(i2,j2)
+  do j=jsc,jec ; do i=isc,iec ; if (G%mask2dT(i,j) > 0.0) then
+    i2 = i+i_off ; j2 = j+j_off
+    FIA%calving(i,j) = US%kg_m2s_to_RZ_T*OIB%calving(i2,j2)
+    FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*OIB%calving_hflx(i2,j2)
+    FIA%IS_mask(i,j) = OIB%IS_mask(i2,j2)
+  else
+    ! This is a land point from the perspective of the sea-ice.
+    ! At some point it might make sense to check for non-zero fluxes, which
+    ! might indicate regridding errors.  However, bad-data values are also
+    ! non-zero and should not be flagged.
+    FIA%calving(i,j) = 0.0; FIA%calving_hflx(i,j) = 0.0; FIA%IS_mask(i,j)= 0.0
+  endif ; enddo ; enddo
+
+  ! is this necessary?
+  call pass_var(FIA%IS_mask, G%domain, complete=.true.)
+
+  if (Ice%fCS%debug) then
+    call FIA_chksum("End of unpack_ocean_ice_boundary_calved_shelf_berg", FIA, G, Ice%fCS%US)
+  endif
+
+end subroutine unpack_ocean_ice_boundary_calved_shelf_bergs
 
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
 !> set_ice_surface_fields prepares the ice surface state for atmosphere fast

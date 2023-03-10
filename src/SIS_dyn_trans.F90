@@ -269,6 +269,7 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, US, IG, 
     stress_stagger = AGRID
   endif
 
+  icebergs_CS%grd%msk=FIA%IS_mask
   if (IST%Cgrid_dyn) then
     do j=jsc-1,jec+1 ; do I=isc-2,iec+1
       u_ice_C(I,j) = US%L_T_to_m_s*IST%u_ice_C(I,j) ; u_ocn_C(I,j) = US%L_T_to_m_s*OSS%u_ocn_C(I,j)

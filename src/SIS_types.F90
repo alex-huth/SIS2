@@ -214,7 +214,8 @@ type fast_ice_avg_type
     WindStr_ocn_y, & !< The meridional wind stress on open water on an A-grid [R Z L T-2 ~> Pa].
     p_atm_surf , &  !< The atmospheric pressure at the top of the ice [R Z L T-2 ~> Pa].
     runoff, &       !< Liquid runoff into the ocean [R Z T-1 ~> kg m-2 s-1].
-    calving         !< Calving of ice or runoff of frozen fresh  water into the ocean [R Z T-1 ~> kg m-2 s-1].
+    calving, &      !< Calving of ice or runoff of frozen fresh  water into the ocean [R Z T-1 ~> kg m-2 s-1].
+    IS_mask         !< Mask for the ice sheets (0 is ice sheet or ice shelf, 1 is ocean)
   real, allocatable, dimension(:,:) :: runoff_hflx !< The heat flux associated with runoff, based
                     !! on the temperature difference relative to a reference temperature [Q R Z T-1 ~> W m-2]
   real, allocatable, dimension(:,:) :: calving_hflx !< The heat flux associated with calving, based
@@ -920,6 +921,7 @@ subroutine alloc_fast_ice_avg(FIA, HI, IG, interp_fluxes, gas_fluxes)
   allocate(FIA%Tskin_avg(isd:ied, jsd:jed), source=0.0) ! diag
   allocate(FIA%ice_free(isd:ied, jsd:jed), source=0.0)
   allocate(FIA%ice_cover(isd:ied, jsd:jed), source=0.0)
+  allocate(FIA%IS_mask(isd:ied, jsd:jed), source=1.0)
 
   if (interp_fluxes) then
     allocate(FIA%flux_sh0(isd:ied, jsd:jed, 0:CatIce), source=0.0)
@@ -1554,6 +1556,7 @@ subroutine copy_FIA_to_FIA(FIA_in, FIA_out, HI_in, HI_out, IG)
     FIA_out%Tskin_avg(i2,j2) = FIA_in%Tskin_avg(i,j)
     FIA_out%ice_free(i2,j2) = FIA_in%ice_free(i,j)
     FIA_out%ice_cover(i2,j2) = FIA_in%ice_cover(i,j)
+    FIA_out%IS_mask(i2,j2) = FIA_in%IS_mask(i,j)
     do b=1,nb ; FIA_out%flux_sw_dn(i2,j2,b) = FIA_in%flux_sw_dn(i,j,b) ; enddo
   enddo ; enddo
   !   FIA%flux_u_top and flux_v_top are deliberately not being copied, as they
@@ -1676,6 +1679,8 @@ subroutine redistribute_FIA_to_FIA(FIA_in, FIA_out, domain_in, domain_out, G_out
                            FIA_out%ice_free, complete=.false.)
     call redistribute_data(domain_in, FIA_in%ice_cover, domain_out, &
                            FIA_out%ice_cover, complete=.true.)
+    call redistribute_data(domain_in, FIA_in%IS_mask, domain_out, &
+                           FIA_out%IS_mask, complete=.true.)
 
     if (allocated(FIA_in%flux_sh0)) then
       call redistribute_data(domain_in, FIA_in%flux_sh0, domain_out, &
@@ -1750,6 +1755,8 @@ subroutine redistribute_FIA_to_FIA(FIA_in, FIA_out, domain_in, domain_out, G_out
                            FIA_out%ice_free, complete=.false.)
     call redistribute_data(domain_in, null_ptr2D, domain_out, &
                            FIA_out%ice_cover, complete=.true.)
+    call redistribute_data(domain_in, null_ptr2D, domain_out, &
+                           FIA_out%IS_mask, complete=.true.)
 
     if (allocated(FIA_out%flux_sh0)) then
       call redistribute_data(domain_in, null_ptr3D, domain_out, &
@@ -1824,6 +1831,8 @@ subroutine redistribute_FIA_to_FIA(FIA_in, FIA_out, domain_in, domain_out, G_out
     call redistribute_data(domain_in, FIA_in%ice_free, domain_out, &
                            null_ptr2D, complete=.false.)
     call redistribute_data(domain_in, FIA_in%ice_cover, domain_out, &
+                           null_ptr2D, complete=.true.)
+    call redistribute_data(domain_in, FIA_in%IS_mask, domain_out, &
                            null_ptr2D, complete=.true.)
 
     if (allocated(FIA_in%flux_sh0)) then
@@ -2125,6 +2134,8 @@ subroutine register_fast_to_slow_restarts(FIA, Rad, TSF, mpp_domain, US, Ice_res
                               mandatory=.false., units="nondim")
   call register_restart_field(Ice_restart, 'ice_cover', FIA%ice_cover, &
                               mandatory=.false., units="nondim")
+  call register_restart_field(Ice_restart, 'ice sheet mask', FIA%IS_mask, &
+                              mandatory=.false., units="nondim")
   call register_restart_field(Ice_restart, 'flux_sw_dn', FIA%flux_sw_dn, dim_3="band", &
                               mandatory=.false., units="W m-2", conversion=US%QRZ_T_to_W_m2)
 
@@ -2252,7 +2263,7 @@ subroutine dealloc_fast_ice_avg(FIA)
   deallocate(FIA%tmelt, FIA%bmelt, FIA%frazil_left)
   deallocate(FIA%WindStr_x, FIA%WindStr_y, FIA%p_atm_surf)
   deallocate(FIA%WindStr_ocn_x, FIA%WindStr_ocn_y)
-  deallocate(FIA%ice_free, FIA%ice_cover, FIA%sw_abs_ocn, FIA%Tskin_avg)
+  deallocate(FIA%ice_free, FIA%ice_cover, FIA%IS_mask, FIA%sw_abs_ocn, FIA%Tskin_avg)
 
   if (allocated(FIA%flux_sh0)) deallocate(FIA%flux_sh0)
   if (allocated(FIA%evap0)) deallocate(FIA%evap0)
