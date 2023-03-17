@@ -96,6 +96,8 @@ type atmos_ice_boundary_type
                          !! calculate the sw_flux fields), nondim and <=1.
     p       => NULL()    !< The atmospheric surface pressure [Pa], often ~1e5 Pa.
 !    data    => NULL() ! This can probably be removed.
+  real, dimension(:,:), pointer :: &
+    fprec_IS => NULL()   !< fprec for the ice sheet
   integer   :: xtype     !< A flag indicating the exchange type, which may be set to
                          !! REGRID, REDIST or DIRECT and is used by coupler
   type(coupler_3d_bc_type)  :: fluxes !< An array of fluxes used for additional tracers

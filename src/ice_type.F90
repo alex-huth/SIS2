@@ -100,6 +100,7 @@ type ice_data_type !  ice_public_type
     flux_lh => NULL(), &  !< The latent heat flux out of the ocean [W m-2].
     lprec => NULL(), &    !< The liquid precipitation flux into the ocean [kg m-2].
     fprec => NULL(), &    !< The frozen precipitation flux into the ocean [kg m-2].
+    fprec_IS => NULL(), &    !< The frozen precipitation flux onto the ice sheet [kg m-2].
     p_surf => NULL(), &   !< The pressure at the ocean surface [Pa].  This may
                           !! or may not include atmospheric pressure.
     runoff => NULL(), &   !< Liquid runoff into the ocean [kg m-2].
@@ -198,6 +199,7 @@ subroutine ice_type_slow_reg_restarts(domain, CatIce, param_file, Ice, &
   call safe_alloc_ptr(Ice%flux_lh, isc, iec, jsc, jec)  !NI
   call safe_alloc_ptr(Ice%lprec, isc, iec, jsc, jec)
   call safe_alloc_ptr(Ice%fprec, isc, iec, jsc, jec)
+  call safe_alloc_ptr(Ice%fprec_IS, isc, iec, jsc, jec)
   call safe_alloc_ptr(Ice%p_surf, isc, iec, jsc, jec)
   call safe_alloc_ptr(Ice%runoff, isc, iec, jsc, jec)
   call safe_alloc_ptr(Ice%calving, isc, iec, jsc, jec)
@@ -233,6 +235,7 @@ subroutine ice_type_slow_reg_restarts(domain, CatIce, param_file, Ice, &
     call register_restart_field(Ice_restart, 'flux_lw',     Ice%flux_lw)
     call register_restart_field(Ice_restart, 'lprec',       Ice%lprec)
     call register_restart_field(Ice_restart, 'fprec',       Ice%fprec)
+    call register_restart_field(Ice_restart, 'fprec_IS',    Ice%fprec_IS)
     call register_restart_field(Ice_restart, 'runoff',      Ice%runoff)
     call register_restart_field(Ice_restart, 'calving',     Ice%calving)
     call register_restart_field(Ice_restart, 'runoff_hflx', Ice%runoff_hflx, mandatory=.false.)
@@ -338,6 +341,7 @@ subroutine dealloc_Ice_arrays(Ice)
   if (associated(Ice%flux_lh)) deallocate(Ice%flux_lh)
   if (associated(Ice%lprec)) deallocate(Ice%lprec)
   if (associated(Ice%fprec)) deallocate(Ice%fprec)
+  if (associated(Ice%fprec_IS)) deallocate(Ice%fprec_IS)
   if (associated(Ice%p_surf)) deallocate(Ice%p_surf)
   if (associated(Ice%runoff)) deallocate(Ice%runoff)
   if (associated(Ice%calving)) deallocate(Ice%calving)
