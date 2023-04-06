@@ -130,7 +130,8 @@ type ocean_sfc_state_type
                 !! ice has been converted to sea-water, as determined by the ocean [Z ~> m].
                 !! Sea-ice only contributes by applying pressure to the ocean that is then
                 !! (partially) converted back to its equivalent by the ocean.
-
+  real, allocatable, dimension(:,:) :: ish  !< A masking variable which is set to one if the
+                !! current cell is under an ice sheet/shelf
   type (coupler_2d_bc_type) :: &
     tr_fields   !< A structure of fields related to properties for additional tracers.
 

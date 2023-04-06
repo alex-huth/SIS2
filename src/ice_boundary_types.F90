@@ -35,8 +35,10 @@ type ocean_ice_boundary_type
     t      => NULL(), &  !< The ocean's surface temperature [Kelvin].
     s      => NULL(), &  !< The ocean's surface salinity [gSalt kg-1].
     frazil => NULL(), &  !< The frazil heat rejected by the ocean [J m-2].
-    sea_level => NULL()  !< The sea level after adjustment for any surface
+    sea_level => NULL(),&!< The sea level after adjustment for any surface
                          !! pressure that the ocean allows to be expressed [m].
+    ish    => NULL()     !< A binary flag to delineate ice sheet/shelf covered cells
+
   real, dimension(:,:,:), pointer :: data =>NULL() !< S collective field for "named" fields above
   integer   :: stagger = BGRID_NE  !< A flag indicating how the velocities are staggered.
   integer   :: xtype     !< A flag indicating the exchange type, which may be set to
