@@ -1124,6 +1124,7 @@ subroutine alloc_ocean_sfc_state(OSS, HI, Cgrid_dyn, gas_fields_ocn)
   allocate(OSS%sea_lev(SZI_(HI), SZJ_(HI)), source=0.0)
   allocate(OSS%bheat(SZI_(HI), SZJ_(HI)), source=0.0)
   allocate(OSS%frazil(SZI_(HI), SZJ_(HI)), source=0.0)
+  allocate(OSS%ish(SZI_(HI), SZJ_(HI)), source=0.0)
 
   if (Cgrid_dyn) then
     allocate(OSS%u_ocn_C(SZIB_(HI), SZJ_(HI)), source=0.0)
@@ -2206,7 +2207,7 @@ subroutine dealloc_ocean_sfc_state(OSS)
     return
   endif
 
-  deallocate(OSS%s_surf, OSS%SST_C, OSS%sea_lev, OSS%T_fr_ocn, OSS%frazil, OSS%bheat)
+  deallocate(OSS%s_surf, OSS%SST_C, OSS%sea_lev, OSS%T_fr_ocn, OSS%frazil, OSS%bheat, OSS%ish)
   if (allocated(OSS%u_ocn_B)) deallocate(OSS%u_ocn_B)
   if (allocated(OSS%v_ocn_B)) deallocate(OSS%v_ocn_B)
   if (allocated(OSS%u_ocn_C)) deallocate(OSS%u_ocn_C)
