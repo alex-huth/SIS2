@@ -54,6 +54,7 @@ type ice_data_type !  ice_public_type
   integer, pointer, dimension(:)   :: fast_pelist =>NULL() !< Used for flux-exchange with fast processes.
   integer, pointer, dimension(:)   :: pelist   =>NULL() !< Used for flux-exchange.
   logical, pointer, dimension(:,:) :: ocean_pt =>NULL() !< An array that indicates ocean points as true.
+  logical, pointer, dimension(:,:) :: Ish_pt =>NULL() !< An array that indicates glacial ice shelf/sheet points as true.
 
   ! These fields are used to provide information about the ice surface to the
   ! atmosphere, and contain separate values for each ice thickness category.
@@ -286,6 +287,10 @@ subroutine ice_type_fast_reg_restarts(domain, CatIce, param_file, Ice, &
     allocate(Ice%ocean_pt(isc:iec, jsc:jec), source=.false.) !derived
   endif
 
+  if (.not.associated(Ice%Ish_pt)) then
+    allocate(Ice%Ish_pt(isc:iec, jsc:jec), source=.false.) !derived
+  endif
+
   call safe_alloc_ptr(Ice%rough_mom, isc, iec, jsc, jec, km)
   call safe_alloc_ptr(Ice%rough_heat, isc, iec, jsc, jec, km)
   call safe_alloc_ptr(Ice%rough_moist, isc, iec, jsc, jec, km)
@@ -316,6 +321,7 @@ subroutine dealloc_Ice_arrays(Ice)
   type(ice_data_type), intent(inout) :: Ice !< The publicly visible ice data type.
 
   if (associated(Ice%ocean_pt)) deallocate(Ice%ocean_pt)
+  if (associated(Ice%Ish_pt)) deallocate(Ice%Ish_pt)
   if (associated(Ice%t_surf)) deallocate(Ice%t_surf)
   if (associated(Ice%s_surf)) deallocate(Ice%s_surf)
   if (associated(Ice%u_surf)) deallocate(Ice%u_surf)

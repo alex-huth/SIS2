@@ -37,7 +37,7 @@ type ocean_ice_boundary_type
     frazil => NULL(), &  !< The frazil heat rejected by the ocean [J m-2].
     sea_level => NULL(),&!< The sea level after adjustment for any surface
                          !! pressure that the ocean allows to be expressed [m].
-    ish    => NULL()     !< A binary flag to delineate ice sheet/shelf covered cells
+    Ish    => NULL()     !< A binary flag to delineate ice sheet/shelf covered cells
 
   real, dimension(:,:,:), pointer :: data =>NULL() !< S collective field for "named" fields above
   integer   :: stagger = BGRID_NE  !< A flag indicating how the velocities are staggered.
@@ -92,6 +92,8 @@ type atmos_ice_boundary_type
                          !! next radiation timestep (not the one that was used to
                          !! calculate the sw_flux fields), nondim and <=1.
     p       => NULL()    !< The atmospheric surface pressure [Pa], often ~1e5 Pa.
+  real, dimension(:,:), pointer ::     Ish    => NULL()     !< A binary flag to delineate
+                         !! ice sheet/shelf covered cells
 !    data    => NULL() ! This can probably be removed.
   integer   :: xtype     !< A flag indicating the exchange type, which may be set to
                          !! REGRID, REDIST or DIRECT and is used by coupler

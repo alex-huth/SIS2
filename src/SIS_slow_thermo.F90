@@ -345,7 +345,7 @@ subroutine slow_thermodynamics(IST, dt_slow, CS, OSS, FIA, XSF, IOF, G, US, IG)
   ! to be moved earlier in the algorithm, if there ever to be multiple calls to
   ! slow_thermodynamics per coupling timestep.
   do j=jsc,jec ; do i=isc,iec
-    FIA%frazil_left(i,j) = OSS%frazil(i,j)
+    FIA%frazil_left(i,j) = OSS%frazil(i,j)*(1.0-OSS%Ish(i,j))
   enddo ; enddo
 
   !
@@ -370,15 +370,15 @@ subroutine slow_thermodynamics(IST, dt_slow, CS, OSS, FIA, XSF, IOF, G, US, IG)
       IST%part_size(i,j,0) = 1.0 - IST%part_size(i,j,1)
       IST%mH_ice(i,j,1) = US%m_to_Z*h_ice_input(i,j) * rho_ice
 
-      IOF%flux_sh_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%flux_sh_top(i,j,0)
-      IOF%evap_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%evap_top(i,j,0)
-      IOF%flux_lw_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%flux_lw_top(i,j,0)
-      IOF%flux_lh_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%flux_lh_top(i,j,0)
+      IOF%flux_sh_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%flux_sh_top(i,j,0)*(1.0-FIA%Ish(i,j))
+      IOF%evap_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%evap_top(i,j,0)*(1.0-FIA%Ish(i,j))
+      IOF%flux_lw_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%flux_lw_top(i,j,0)*(1.0-FIA%Ish(i,j))
+      IOF%flux_lh_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%flux_lh_top(i,j,0)*(1.0-FIA%Ish(i,j))
       do b=1,nb
         IOF%flux_sw_ocn(i,j,b) = IST%part_size(i,j,0) * FIA%flux_sw_top(i,j,0,b)
       enddo
-      IOF%lprec_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%lprec_top(i,j,0)
-      IOF%fprec_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%fprec_top(i,j,0)
+      IOF%lprec_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%lprec_top(i,j,0)*(1.0-FIA%Ish(i,j))
+      IOF%fprec_ocn_top(i,j) = IST%part_size(i,j,0) * FIA%fprec_top(i,j,0)*(1.0-FIA%Ish(i,j))
     enddo ; enddo
 
   endif

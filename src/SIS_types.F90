@@ -161,7 +161,8 @@ type simple_OSS_type
     u_ocn_A, &  !< The ocean's zonal surface velocity on A-grid points [L T-1 ~> m s-1].
     v_ocn_A, &  !< The ocean's meridional surface velocity on A-grid points [L T-1 ~> m s-1].
     u_ice_A, &  !< The sea ice's zonal velocity on A-grid points [L T-1 ~> m s-1].
-    v_ice_A     !< The sea ice's meridional velocity on A-grid points [L T-1 ~> m s-1].
+    v_ice_A, &  !< The sea ice's meridional velocity on A-grid points [L T-1 ~> m s-1].
+    Ish         !< A flag which indicates of the cell is part of an ice sheet [nodim]
   real, allocatable, dimension(:,:) :: bheat !< The upward diffusive heat flux
                 !! from the ocean to the ice at the base of the ice [Q R Z T-1 ~> W m-2].
 
@@ -230,7 +231,9 @@ type fast_ice_avg_type
   real, allocatable, dimension(:,:) :: ice_free  !< The fractional open water used in calculating
                     !! WindStr_[xy]_A, between 0 & 1 [nondim].
   real, allocatable, dimension(:,:) :: ice_cover !< The fractional ice coverage, summed across all
-                    !! thickness categories, used in calculating WindStr_[xy]_A, between 0 & 1 [nondim].q
+                    !! thickness categories, used in calculating WindStr_[xy]_A, between 0 & 1 [nondim].
+  real, allocatable, dimension(:,:) :: Ish  !< A flag (1) indicating the presence of an ice sheet [nondim].
+
 
   integer :: copy_calls = 0 !< The number of times this structure has been
                     !! copied from the fast ice to the slow ice.
@@ -894,6 +897,7 @@ subroutine alloc_fast_ice_avg(FIA, HI, IG, interp_fluxes, gas_fluxes)
   isd = HI%isd ; ied = HI%ied ; jsd = HI%jsd ; jed = HI%jed
 
   FIA%avg_count = 0
+  allocate(FIA%Ish(isd:ied, jsd:jed), source=0.0)
   allocate(FIA%flux_u_top(isd:ied, jsd:jed, 0:CatIce), source=0.0)
   allocate(FIA%flux_v_top(isd:ied, jsd:jed, 0:CatIce), source=0.0)
   allocate(FIA%flux_sh_top(isd:ied, jsd:jed, 0:CatIce), source=0.0)
@@ -1170,6 +1174,7 @@ subroutine alloc_simple_OSS(OSS, HI, gas_fields_ocn)
   allocate(OSS%v_ocn_A(isd:ied, jsd:jed), source=0.0)
   allocate(OSS%u_ice_A(isd:ied, jsd:jed), source=0.0)
   allocate(OSS%v_ice_A(isd:ied, jsd:jed), source=0.0)
+  allocate(OSS%ish(isd:ied, jsd:jed), source=0.0)
   if (present(gas_fields_ocn)) &
     call coupler_type_spawn(gas_fields_ocn, OSS%tr_fields, (/isd, isc, iec, ied/), &
                             (/jsd, jsc, jec, jed/))
@@ -1338,6 +1343,7 @@ subroutine translate_OSS_to_sOSS(OSS, IST, sOSS, G, US)
     sOSS%s_surf(i,j) = OSS%s_surf(i,j)
     sOSS%SST_C(i,j) = OSS%SST_C(i,j)
     sOSS%T_fr_ocn(i,j) = OSS%T_fr_ocn(i,j)
+    sOSS%ish(i,j) = OSS%ish(i,j)
 
     if (G%mask2dT(i,j)>0.0) then
       sOSS%bheat(i,j) = OSS%bheat(i,j)
@@ -1398,6 +1404,7 @@ subroutine copy_sOSS_to_sOSS(OSS_in, OSS_out, HI_in, HI_out)
   i_off = HI_out%iec-HI_in%iec ;  j_off = HI_out%jec-HI_in%jec
 
   do j=jsc,jec ; do i=isc,iec ; i2 = i+i_off ; j2 = j+j_off
+    OSS_out%Ish(i2,j2) = OSS_in%Ish(i,j)
     OSS_out%SST_C(i2,j2) = OSS_in%SST_C(i,j)
     OSS_out%s_surf(i2,j2) = OSS_in%s_surf(i,j)
     OSS_out%T_fr_ocn(i2,j2) = OSS_in%T_fr_ocn(i,j)
@@ -1434,6 +1441,8 @@ subroutine redistribute_sOSS_to_sOSS(OSS_in, OSS_out, domain_in, domain_out, HI_
     ! This could have complete set to .false. if the halo sizes matched.
     call coupler_type_redistribute_data(OSS_in%tr_fields, domain_in, &
                           OSS_out%tr_fields, domain_out, complete=.false.)
+    call redistribute_data(domain_in, OSS_in%Ish, domain_out, &
+                           OSS_out%Ish, complete=.false.)
     call redistribute_data(domain_in, OSS_in%SST_C, domain_out, &
                            OSS_out%SST_C, complete=.false.)
     call redistribute_data(domain_in, OSS_in%s_surf, domain_out, &
@@ -1523,6 +1532,11 @@ subroutine copy_FIA_to_FIA(FIA_in, FIA_out, HI_in, HI_out, IG)
                           "decompositions of the two ice types.")
   endif
   i_off = HI_out%iec-HI_in%iec ;  j_off = HI_out%jec-HI_in%jec
+
+  do j=jsc,jec ; do i=isc,iec
+    i2 = i+i_off ; j2 = j+j_off
+    FIA_out%Ish(i2,j2) = FIA_in%Ish(i,j)
+  enddo; enddo
 
   do k=0,ncat ; do j=jsc,jec ; do i=isc,iec
     i2 = i+i_off ; j2 = j+j_off
@@ -1630,6 +1644,8 @@ subroutine redistribute_FIA_to_FIA(FIA_in, FIA_out, domain_in, domain_out, G_out
       call redistribute_data(domain_in, FIA_in%flux_sw_top(:,:,:,b), domain_out, &
                              FIA_out%flux_sw_top(:,:,:,b), complete=.false.)
     enddo
+    call  redistribute_data(domain_in, FIA_in%Ish, domain_out, &
+                          FIA_out%Ish, complete=.false.)
     call  redistribute_data(domain_in, FIA_in%flux_sh_top, domain_out, &
                           FIA_out%flux_sh_top, complete=.false.)
     call redistribute_data(domain_in, FIA_in%evap_top, domain_out, &
@@ -2089,6 +2105,8 @@ subroutine register_fast_to_slow_restarts(FIA, Rad, TSF, mpp_domain, US, Ice_res
 ! These fields are needed because the open-water fluxes are not recalculated.  It might be
 ! possible to make the fast-to-slow restart file smaller by breaking out the open-ocean
 ! category.
+  call register_restart_field(Ice_restart, 'Ish', FIA%Ish, &
+                              mandatory=.false., units="none")
   call register_restart_field(Ice_restart, 'flux_sh_top', FIA%flux_sh_top, dim_3="cat0", &
                               mandatory=.false., units="W m-2", conversion=US%QRZ_T_to_W_m2)
   call register_restart_field(Ice_restart, 'evap_top', FIA%evap_top, dim_3="cat0", &
@@ -2227,7 +2245,7 @@ subroutine dealloc_simple_OSS(OSS)
     return
   endif
 
-  deallocate(OSS%s_surf, OSS%SST_C, OSS%bheat, OSS%T_fr_ocn)
+  deallocate(OSS%s_surf, OSS%SST_C, OSS%bheat, OSS%T_fr_ocn, OSS%ish)
   deallocate(OSS%u_ocn_A, OSS%v_ocn_A, OSS%u_ice_A, OSS%v_ice_A)
 
   deallocate(OSS)
@@ -2244,6 +2262,7 @@ subroutine dealloc_fast_ice_avg(FIA)
     return
   endif
 
+  deallocate(FIA%Ish )
   deallocate(FIA%flux_u_top, FIA%flux_v_top )
   deallocate(FIA%flux_sh_top, FIA%evap_top, FIA%flux_lw_top)
   deallocate(FIA%flux_lh_top, FIA%lprec_top, FIA%fprec_top)

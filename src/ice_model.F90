@@ -400,10 +400,10 @@ subroutine unpack_land_ice_boundary(Ice, LIB)
   !$OMP                          private(i2,j2)
   do j=jsc,jec ; do i=isc,iec ; if (G%mask2dT(i,j) > 0.0) then
     i2 = i+i_off ; j2 = j+j_off
-    FIA%runoff(i,j)  = US%kg_m2s_to_RZ_T*LIB%runoff(i2,j2)
-    FIA%calving(i,j) = US%kg_m2s_to_RZ_T*LIB%calving(i2,j2)
-    FIA%runoff_hflx(i,j)  = US%W_m2_to_QRZ_T*LIB%runoff_hflx(i2,j2)
-    FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*LIB%calving_hflx(i2,j2)
+    FIA%runoff(i,j)  = US%kg_m2s_to_RZ_T*LIB%runoff(i2,j2)*(1.0-FIA%Ish(i,j))
+    FIA%calving(i,j) = US%kg_m2s_to_RZ_T*LIB%calving(i2,j2)*(1.0-FIA%Ish(i,j))
+    FIA%runoff_hflx(i,j)  = US%W_m2_to_QRZ_T*LIB%runoff_hflx(i2,j2)*(1.0-FIA%Ish(i,j))
+    FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*LIB%calving_hflx(i2,j2)*(1.0-FIA%Ish(i,j))
   else
     ! This is a land point from the perspective of the sea-ice.
     ! At some point it might make sense to check for non-zero fluxes, which
@@ -863,10 +863,10 @@ subroutine unpack_ocn_ice_bdry(OIB, OSS, ITV, G, US, specified_ice, ocean_fields
   do j=jsc,jec ; do i=isc,iec ; i2 = i+i_off ; j2 = j+j_off
     OSS%s_surf(i,j) = US%ppt_to_S*OIB%s(i2,j2)
     OSS%T_fr_ocn(i,j) = T_Freeze(OSS%s_surf(i,j), ITV)
-    OSS%bheat(i,j) = OSS%kmelt*(OSS%SST_C(i,j) - OSS%T_fr_ocn(i,j))
-    OSS%frazil(i,j) = US%W_m2_to_QRZ_T*US%s_to_T*OIB%frazil(i2,j2)
+    OSS%ish(i,j) = OIB%Ish(i2,j2)
+    OSS%bheat(i,j) = OSS%kmelt*(OSS%SST_C(i,j) - OSS%T_fr_ocn(i,j))*(1.0-OSS%Ish(i,j))
+    OSS%frazil(i,j) = US%W_m2_to_QRZ_T*US%s_to_T*OIB%frazil(i2,j2)*(1.0-OSS%Ish(i,j))
     OSS%sea_lev(i,j) = US%m_to_Z*OIB%sea_level(i2,j2)
-    OSS%ish(i,j) = OIB%ish(i2,j2)
   enddo ; enddo
 
   Cgrid_ocn = (allocated(OSS%u_ocn_C) .and. allocated(OSS%v_ocn_C))
@@ -1018,6 +1018,10 @@ subroutine set_ice_surface_state(Ice, IST, OSS, Rad, FIA, G, US, IG, fCS)
   endif
 
   m_ice_tot(:,:) = 0.0
+  do j=jsc,jec ;  do i=isc,iec
+    FIA%ish(i,j) = OSS%ish(i,j)
+  enddo; enddo
+
   !$OMP parallel do default(none) shared(isc,iec,jsc,jec,G,IST,OSS,FIA,ncat,m_ice_tot)
   do j=jsc,jec ; do k=1,ncat ; do i=isc,iec
     FIA%tmelt(i,j,k) = 0.0 ; FIA%bmelt(i,j,k) = 0.0
@@ -1499,7 +1503,7 @@ subroutine fast_radiation_diagnostics(ABT, Ice, IST, Rad, FIA, G, US, IG, CS, &
 
   do j=jsc,jec ; do i=isc,iec ; if (G%mask2dT(i,j)>0.0) then
     do b=1,size(FIA%flux_sw_dn,3)
-      FIA%flux_sw_dn(i,j,b) = FIA%flux_sw_dn(i,j,b) + US%W_m2_to_QRZ_T*sw_dn_bnd(i,j,b)
+      FIA%flux_sw_dn(i,j,b) = FIA%flux_sw_dn(i,j,b) + US%W_m2_to_QRZ_T*sw_dn_bnd(i,j,b)*(1.0-FIA%Ish(i,j))
     enddo
   endif ; enddo ; enddo
 
