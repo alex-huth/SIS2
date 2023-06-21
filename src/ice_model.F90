@@ -394,6 +394,10 @@ subroutine unpack_land_ice_boundary(Ice, LIB, calve_ice_shelf_bergs)
   FIA => Ice%fCS%FIA ; G => Ice%fCS%G
   US => Ice%fCS%US
 
+  if (.not. calve_ice_shelf_bergs) then
+    FIA%calving(:,:) = 0.0; FIA%calving_hflx(:,:) = 0.0
+  endif
+
   isc = G%isc ; iec = G%iec ; jsc = G%jsc ; jec = G%jec
 
   ! Store liquid runoff and other fluxes from the land to the ice or ocean.
@@ -404,19 +408,20 @@ subroutine unpack_land_ice_boundary(Ice, LIB, calve_ice_shelf_bergs)
     i2 = i+i_off ; j2 = j+j_off
     FIA%runoff(i,j)  = US%kg_m2s_to_RZ_T*LIB%runoff(i2,j2)
     FIA%runoff_hflx(i,j)  = US%W_m2_to_QRZ_T*LIB%runoff_hflx(i2,j2)
-    if (.not. calve_ice_shelf_bergs) then
-      FIA%calving(i,j) = US%kg_m2s_to_RZ_T*LIB%calving(i2,j2)
-      FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*LIB%calving_hflx(i2,j2)
+    !If a cell has already accumulated calving from the ice shelf model [FIA%calving(i,j)>0.0], it should
+    !not also accumulate calving from the land model snow discharge [LIB%calving(i2,j2)>0.0]
+    if (FIA%calving(i,j)>0.0 .and. LIB%calving(i2,j2)>0.0) then
+      call SIS_error(FATAL,"There should be no calving from snow discharge wherever ice shelf calving is > 0!")
     endif
+    FIA%calving(i,j) = FIA%calving(i,j) + US%kg_m2s_to_RZ_T*LIB%calving(i2,j2)
+    FIA%calving_hflx(i,j) = FIA%calving_hflx(i,j) + US%W_m2_to_QRZ_T*LIB%calving_hflx(i2,j2)
   else
     ! This is a land point from the perspective of the sea-ice.
     ! At some point it might make sense to check for non-zero fluxes, which
     ! might indicate regridding errors.  However, bad-data values are also
     ! non-zero and should not be flagged.
     FIA%runoff(i,j)  = 0.0 ; FIA%runoff_hflx(i,j)  = 0.0
-    if (.not. calve_ice_shelf_bergs) then
-      FIA%calving(i,j) = 0.0; FIA%calving_hflx(i,j) = 0.0
-    endif
+    !FIA%calving(i,j) = 0.0; FIA%calving_hflx(i,j) = 0.0
   endif ; enddo ; enddo
 
   if (Ice%fCS%debug) then
