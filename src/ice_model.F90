@@ -371,10 +371,10 @@ end subroutine ice_model_fast_cleanup
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
 !> unpack_land_ice_bdry converts the information in a publicly visible
 !! land_ice_boundary_type into an internally visible fast_ice_avg_type variable.
-subroutine unpack_land_ice_boundary(Ice, LIB, calve_ice_shelf_bergs)
+subroutine unpack_land_ice_boundary(Ice, LIB)
   type(ice_data_type),          intent(inout) :: Ice !< The publicly visible ice data type.
   type(land_ice_boundary_type), intent(in)    :: LIB !< The land ice boundary type that is being unpacked.
-  logical, intent(in) :: calve_ice_shelf_bergs !< If true, bergs calve from ice shelf, not frozen flux from land
+
   type(fast_ice_avg_type), pointer :: FIA => NULL()
   type(SIS_hor_grid_type), pointer :: G => NULL()
   type(unit_scale_type),   pointer :: US => NULL()
@@ -393,10 +393,6 @@ subroutine unpack_land_ice_boundary(Ice, LIB, calve_ice_shelf_bergs)
 
   isc = G%isc ; iec = G%iec ; jsc = G%jsc ; jec = G%jec
 
-  if (.not. calve_ice_shelf_bergs) then
-    FIA%calving(:,:) = 0.0; FIA%calving_hflx(:,:) = 0.0
-  endif
-
   ! Store liquid runoff and other fluxes from the land to the ice or ocean.
   i_off = LBOUND(LIB%runoff,1) - G%isc ; j_off = LBOUND(LIB%runoff,2) - G%jsc
   !$OMP parallel do default(none) shared(isc,iec,jsc,jec,FIA,LIB,i_off,j_off,G,US) &
@@ -404,21 +400,16 @@ subroutine unpack_land_ice_boundary(Ice, LIB, calve_ice_shelf_bergs)
   do j=jsc,jec ; do i=isc,iec ; if (G%mask2dT(i,j) > 0.0) then
     i2 = i+i_off ; j2 = j+j_off
     FIA%runoff(i,j)  = US%kg_m2s_to_RZ_T*LIB%runoff(i2,j2)
+    FIA%calving(i,j) = US%kg_m2s_to_RZ_T*LIB%calving(i2,j2)
     FIA%runoff_hflx(i,j)  = US%W_m2_to_QRZ_T*LIB%runoff_hflx(i2,j2)
-    !If a cell has already accumulated calving from the ice shelf model [FIA%calving(i,j)>0.0], it should
-    !not also accumulate calving from the land model snow discharge [LIB%calving(i2,j2)>0.0]
-    if (FIA%calving(i,j)>0.0 .and. LIB%calving(i2,j2)>0.0) then
-      call SIS_error(FATAL,"There should be no calving from snow discharge wherever ice shelf calving is > 0!")
-    endif
-    FIA%calving(i,j) = FIA%calving(i,j) + US%kg_m2s_to_RZ_T*LIB%calving(i2,j2)
-    FIA%calving_hflx(i,j) = FIA%calving_hflx(i,j) + US%W_m2_to_QRZ_T*LIB%calving_hflx(i2,j2)
+    FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*LIB%calving_hflx(i2,j2)
   else
     ! This is a land point from the perspective of the sea-ice.
     ! At some point it might make sense to check for non-zero fluxes, which
     ! might indicate regridding errors.  However, bad-data values are also
     ! non-zero and should not be flagged.
-    FIA%runoff(i,j)  = 0.0 !; FIA%calving(i,j) = 0.0
-    FIA%runoff_hflx(i,j)  = 0.0 !; FIA%calving_hflx(i,j) = 0.0
+    FIA%runoff(i,j)  = 0.0 ; FIA%calving(i,j) = 0.0
+    FIA%runoff_hflx(i,j)  = 0.0 ; FIA%calving_hflx(i,j) = 0.0
   endif ; enddo ; enddo
 
   if (Ice%fCS%debug) then
@@ -456,15 +447,11 @@ subroutine unpack_ocean_ice_boundary_calved_shelf_bergs(Ice, OIB)
   !$OMP parallel do default(none) shared(isc,iec,jsc,jec,FIA,OIB,i_off,j_off,G,US) &
   !$OMP                          private(i2,j2)
   do j=jsc,jec ; do i=isc,iec ; if (G%mask2dT(i,j) > 0.0) then
+    if (FIA%calving(i,j)>0.0 .and. OIB%calving(i2,j2)>0.0) &
+      call SIS_error(FATAL,"Overlap in calving from snow discharge and ice shelf!")
     i2 = i+i_off ; j2 = j+j_off
     FIA%calving(i,j) = US%kg_m2s_to_RZ_T*OIB%calving(i2,j2)
     FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*OIB%calving_hflx(i2,j2)
-  else
-    ! This is a land or ice shelf point from the perspective of the sea-ice.
-    ! At some point it might make sense to check for non-zero fluxes, which
-    ! might indicate regridding errors.  However, bad-data values are also
-    ! non-zero and should not be flagged.
-    FIA%calving(i,j) = 0.0; FIA%calving_hflx(i,j) = 0.0
   endif ; enddo ; enddo
 
   if (Ice%fCS%debug) then
