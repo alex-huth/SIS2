@@ -447,9 +447,9 @@ subroutine unpack_ocean_ice_boundary_calved_shelf_bergs(Ice, OIB)
   !$OMP parallel do default(none) shared(isc,iec,jsc,jec,FIA,OIB,i_off,j_off,G,US) &
   !$OMP                          private(i2,j2)
   do j=jsc,jec ; do i=isc,iec ; if (G%mask2dT(i,j) > 0.0) then
+    i2 = i+i_off ; j2 = j+j_off
     if (FIA%calving(i,j)>0.0 .and. OIB%calving(i2,j2)>0.0) &
       call SIS_error(FATAL,"Overlap in calving from snow discharge and ice shelf!")
-    i2 = i+i_off ; j2 = j+j_off
     FIA%calving(i,j) = US%kg_m2s_to_RZ_T*OIB%calving(i2,j2)
     FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*OIB%calving_hflx(i2,j2)
     if (allocated(OIB%calve_mask))   FIA%calve_mask(i,j)   = OIB%calve_mask(i,j)
