@@ -104,6 +104,9 @@ type SIS_slow_CS
                             !! modifies the calving field among other things.
   logical :: pass_iceberg_area_to_ocean !< If true, iceberg area is passed through coupler
                             !! (must have ICEBERGS_APPLY_RIGID_BOUNDARY=True in MOM_input)
+  logical :: calve_tabular_bergs !< If true, the cell fractions of bonded-particle icebergs that are
+                            !! partially-calved or fully-calved from the ice shelf are passed through
+                            !! the coupler. Pass_iceberg_area_to_ocean must be true.
   logical :: berg_windstress_bug = .false. !< If true, use older code that applied
                             !! an old ice-ocean stress to the icebergs in place of
                             !! the current air-ice stress.  This option exists for
@@ -358,6 +361,12 @@ subroutine ice_diagnostics_init(IOF, OSS, FIA, G, US, IG, diag, Time, Cgrid)
   if (associated(IOF%mass_berg)) &
     IOF%id_mass_berg  = register_SIS_diag_field('ice_model', 'MASS_BERG', diag%axesT1, Time, &
                'icebergs mass', 'kg/m2', missing_value=missing)
+  if (associated(IOF%frac_cberg)) &
+    IOF%id_frac_cberg  = register_SIS_diag_field('ice_model', 'FRAC_CBERG', diag%axesT1, Time, &
+               'cell fraction of partially-calved tabular bonded bergs', 'none', missing_value=missing)
+  if (associated(IOF%frac_cberg)) &
+    IOF%id_frac_cberg_calved  = register_SIS_diag_field('ice_model', 'FRAC_CBERG_CALVED', diag%axesT1, Time, &
+               'cell fraction of fully-calved tabular bonded bergs', 'none', missing_value=missing)
 
   ! Write out static fields.
 
