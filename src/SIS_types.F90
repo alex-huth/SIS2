@@ -224,6 +224,14 @@ type fast_ice_avg_type
   real, allocatable, dimension(:,:) :: calving_hflx_preberg !< The heat flux associated with calving
                     !! exclusive of any iceberg contributions, based on the temperature difference
                     !! relative to a reference temperature [Q R Z T-1 ~> W m-2]
+  real, allocatable, dimension(:,:), :: calve_mask !< Mask for calving of tabular bonded bergs [nondim]
+  real, allocatable, dimension(:,:), :: mass_shelf !< The ice shelf mass field [R Z ~> kg m-2]
+  real, allocatable, dimension(:,:), :: frac_shelf_h !< The fraction of each grid cell covered by
+                    !! ice shelf [nondim]
+  real, allocatable, dimension(:,:), :: frac_cberg_calved !< Cell fraction of fully-calved bonded bergs from
+                    !! the ice sheet [nondim]
+  real, allocatable, dimension(:,:), :: frac_cberg !< Cell fraction of partially-calved bonded bergs from
+                    !!the ice sheet [nondim]
   real, allocatable, dimension(:,:) :: Tskin_avg !< The area-weighted average skin temperature
                     !! across all ice thickness categories [C ~> degC], or 0 if there is no ice.
   real, allocatable, dimension(:,:) :: ice_free  !< The fractional open water used in calculating
@@ -784,6 +792,15 @@ subroutine alloc_fast_ice_avg(FIA, HI, IG, interp_fluxes, gas_fluxes)
     allocate(FIA%devapdt(isd:ied, jsd:jed, 0:CatIce), source=0.0)
     allocate(FIA%dlwdt(isd:ied, jsd:jed, 0:CatIce), source=0.0)
     allocate(FIA%Tskin_cat(isd:ied, jsd:jed, 0:CatIce), source=0.0)
+  endif
+
+  !TODO: define (in coupler) and read in 'tabular_calving' somewhere
+  if (tabular_calving) then
+    allocate(FIA%calve_mask(isd:ied, jsd:jed), source=0.0)
+    allocate(FIA%mass_shelf(isd:ied, jsd:jed), source=0.0)
+    allocate(FIA%frac_shelf_h(isd:ied, jsd:jed), source=0.0)
+    allocate(FIA%frac_cberg_calved(isd:ied, jsd:jed), source=0.0)
+    allocate(FIA%frac_cberg(isd:ied, jsd:jed), source=0.0)
   endif
 
   allocate(FIA%flux_sw_dn(isd:ied, jsd:jed, NBANDS), source=0.0)

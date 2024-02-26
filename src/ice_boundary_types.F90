@@ -39,7 +39,12 @@ type ocean_ice_boundary_type
                            !! pressure that the ocean allows to be expressed [m].
     calving => NULL(), &   !< The mass flux per unit area of the ice shelf to convert to
                            !!bergs [RZ_T ~> kg m-2 s-1].
-    calving_hflx => NULL() !< Calving heat flux [Q R Z T-1 ~> W m-2].
+    calving_hflx => NULL(), & !< Calving heat flux [Q R Z T-1 ~> W m-2].
+    calve_mask => NULL(), &   !< Mask for calving of tabular bonded bergs [nondim]
+    mass_shelf => NULL(), &   !< The ice shelf mass field [R Z ~> kg m-2]
+    frac_shelf_h => NULL(), & !< The fraction of each grid cell covered by the ice shelf [nondim]
+    frac_cberg_calved => NULL(), &  !< Cell fraction of fully-calved bonded bergs from the ice sheet [nondim]
+    frac_cberg => NULL()      !< Cell fraction of partially-calved bonded bergs from the ice sheet [nondim]
   real, dimension(:,:,:), pointer :: data =>NULL() !< S collective field for "named" fields above
   integer   :: stagger = BGRID_NE  !< A flag indicating how the velocities are staggered.
   integer   :: xtype     !< A flag indicating the exchange type, which may be set to

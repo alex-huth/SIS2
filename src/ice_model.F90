@@ -452,6 +452,9 @@ subroutine unpack_ocean_ice_boundary_calved_shelf_bergs(Ice, OIB)
     i2 = i+i_off ; j2 = j+j_off
     FIA%calving(i,j) = US%kg_m2s_to_RZ_T*OIB%calving(i2,j2)
     FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*OIB%calving_hflx(i2,j2)
+    if (allocated(OIB%calve_mask))   FIA%calve_mask(i,j)   = OIB%calve_mask(i,j)
+    if (allocated(OIB%mass_shelf))   FIA%mass_shelf(i,j)   = US%kg_m2_to_RZ*OIB%mass_shelf(i,j)
+    if (allocated(OIB%frac_shelf_h)) FIA%frac_shelf_h(i,j) = OIB%frac_shelf_h(i,j)
   endif ; enddo ; enddo
 
   if (Ice%fCS%debug) then
