@@ -224,6 +224,10 @@ type fast_ice_avg_type
   real, allocatable, dimension(:,:) :: calving_hflx_preberg !< The heat flux associated with calving
                     !! exclusive of any iceberg contributions, based on the temperature difference
                     !! relative to a reference temperature [Q R Z T-1 ~> W m-2]
+  real, pointer, dimension(:,:) :: tabular_calve_mask => NULL()!< Mask for calving of tabular bonded bergs [nondim]
+  real, pointer, dimension(:,:) :: mass_shelf => NULL() !< The ice shelf mass field per ice shelf area [R Z ~> kg m-2]
+  real, pointer, dimension(:,:) :: area_shelf_h => NULL() !< The fraction of each grid cell covered by
+                    !! ice shelf [nondim]
   real, allocatable, dimension(:,:) :: Tskin_avg !< The area-weighted average skin temperature
                     !! across all ice thickness categories [C ~> degC], or 0 if there is no ice.
   real, allocatable, dimension(:,:) :: ice_free  !< The fractional open water used in calculating
@@ -386,7 +390,9 @@ type ice_ocean_flux_type
   real, pointer, dimension(:,:)   :: &
     ustar_berg => NULL(), & !< ustar contribution below icebergs [m s-1]
     area_berg => NULL(),  & !< fraction of grid cell covered by icebergs [m2 m-2]
-    mass_berg => NULL()     !< mass of icebergs [kg m-2]
+    mass_berg => NULL(),  & !< mass of icebergs [kg m-2]
+    frac_cberg => NULL(), & !< Cell fraction of partially-calved bonded bergs from the ice sheet [nondim]
+    frac_cberg_calved => NULL() !< Cell fraction of fully-calved bonded bergs from the ice sheet [nondim]
 
   ! These arrays are used for enthalpy change diagnostics in the slow thermodynamics.
   real, allocatable, dimension(:,:)   :: &
@@ -421,7 +427,7 @@ type ice_ocean_flux_type
   integer :: id_saltf=-1
   ! The following are diagnostic IDs for iceberg-related fields.  These are only
   ! used if the iceberg code is activated.
-  integer ::  id_ustar_berg=-1, id_area_berg=-1, id_mass_berg=-1
+  integer ::  id_ustar_berg=-1, id_area_berg=-1, id_mass_berg=-1, id_frac_cberg=-1, id_frac_cberg_calved=-1
   !!@}
 end type ice_ocean_flux_type
 
@@ -728,7 +734,7 @@ end subroutine rescale_ice_state_restart_fields
 
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
 !> alloc_fast_ice_avg allocates and zeros out the arrays in a fast_ice_avg_type.
-subroutine alloc_fast_ice_avg(FIA, HI, IG, interp_fluxes, gas_fluxes, ice_sheet_enabled)
+subroutine alloc_fast_ice_avg(FIA, HI, IG, interp_fluxes, gas_fluxes, ice_sheet_enabled, tabular_calving)
   type(fast_ice_avg_type), pointer    :: FIA !< A type containing averages of fields
                                              !! (mostly fluxes) over the fast updates
   type(hor_index_type),    intent(in) :: HI  !< The horizontal index type describing the domain
@@ -741,13 +747,17 @@ subroutine alloc_fast_ice_avg(FIA, HI, IG, interp_fluxes, gas_fluxes, ice_sheet_
                                              !! additional gas or other tracer fluxes between the
                                              !! ocean, ice, and atmosphere.
   logical, optional,       intent(in) :: ice_sheet_enabled
-
+  logical, optional,       intent(in) :: tabular_calving !< If present and true, allocate fields
+                                             !! for tabular calving of bonded-particle icebergs
+                                             !! from ice shelves
+  logical :: alloc_tabular_calving
   integer :: isc, iec, jsc, jec, isd, ied, jsd, jed, CatIce
   logical :: do_IS
 
   do_IS=.false.
   if (present(ice_sheet_enabled)) do_IS=ice_sheet_enabled
   if (.not.associated(FIA)) allocate(FIA)
+  alloc_tabular_calving = .false. ; if (present(tabular_calving)) alloc_tabular_calving = tabular_calving
   CatIce = IG%CatIce
   isc = HI%isc ; iec = HI%iec ; jsc = HI%jsc ; jec = HI%jec
   isd = HI%isd ; ied = HI%ied ; jsd = HI%jsd ; jed = HI%jed
@@ -790,6 +800,12 @@ subroutine alloc_fast_ice_avg(FIA, HI, IG, interp_fluxes, gas_fluxes, ice_sheet_
     allocate(FIA%devapdt(isd:ied, jsd:jed, 0:CatIce), source=0.0)
     allocate(FIA%dlwdt(isd:ied, jsd:jed, 0:CatIce), source=0.0)
     allocate(FIA%Tskin_cat(isd:ied, jsd:jed, 0:CatIce), source=0.0)
+  endif
+
+  if (alloc_tabular_calving) then
+    allocate(FIA%tabular_calve_mask(isd:ied, jsd:jed), source=0.0)
+    allocate(FIA%mass_shelf(isd:ied, jsd:jed), source=0.0)
+    allocate(FIA%area_shelf_h(isd:ied, jsd:jed), source=0.0)
   endif
 
   allocate(FIA%flux_sw_dn(isd:ied, jsd:jed, NBANDS), source=0.0)
@@ -900,7 +916,7 @@ end subroutine alloc_ice_rad
 
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
 !> alloc_ice_ocean_flux allocates and zeros out the arrays in an ice_ocean_flux_type.
-subroutine alloc_ice_ocean_flux(IOF, HI, do_stress_mag, do_iceberg_fields, do_transmute)
+subroutine alloc_ice_ocean_flux(IOF, HI, do_stress_mag, do_iceberg_fields, do_transmute, do_tabular_calving)
   type(ice_ocean_flux_type), pointer    :: IOF !< A structure containing fluxes from the ice to
                                                !! the ocean that are calculated by the ice model.
   type(hor_index_type),      intent(in) :: HI  !< The horizontal index type describing the domain
@@ -911,10 +927,14 @@ subroutine alloc_ice_ocean_flux(IOF, HI, do_stress_mag, do_iceberg_fields, do_tr
   logical,         optional, intent(in) :: do_transmute !< If true, allocate fields related to
                                                !! transmuting ice directly into seawater as a form
                                                !! of open boundary condition
+  logical,         optional, intent(in) :: do_tabular_calving !< If present and true, allocate fields
+                                             !! for tabular calving of bonded-particle icebergs
+                                             !! from ice shelves
   integer :: CatIce
-  logical :: alloc_bergs, alloc_stress_mag
+  logical :: alloc_bergs, alloc_stress_mag, alloc_tabular_calving
 
   alloc_bergs = .false. ; if (present(do_iceberg_fields)) alloc_bergs = do_iceberg_fields
+  alloc_tabular_calving = .false. ; if (present(do_tabular_calving)) alloc_tabular_calving = do_tabular_calving
   alloc_stress_mag = .false. ; if (present(do_stress_mag)) alloc_stress_mag = do_stress_mag
 
   if (.not.associated(IOF)) allocate(IOF)
@@ -953,6 +973,10 @@ subroutine alloc_ice_ocean_flux(IOF, HI, do_stress_mag, do_iceberg_fields, do_tr
     allocate(IOF%mass_berg(HI%isc:HI%iec, HI%jsc:HI%jec), source=0.0)
     allocate(IOF%ustar_berg(HI%isc:HI%iec, HI%jsc:HI%jec), source=0.0)
     allocate(IOF%area_berg(HI%isc:HI%iec, HI%jsc:HI%jec), source=0.0)
+    if (alloc_tabular_calving) then
+      allocate(IOF%frac_cberg(HI%isc:HI%iec, HI%jsc:HI%jec), source=0.0)
+      allocate(IOF%frac_cberg_calved(HI%isc:HI%iec, HI%jsc:HI%jec), source=0.0)
+    endif
   endif
 
 end subroutine alloc_ice_ocean_flux
@@ -2134,6 +2158,10 @@ subroutine dealloc_fast_ice_avg(FIA)
   if (allocated(FIA%dlwdt)) deallocate(FIA%dlwdt)
   if (allocated(FIA%Tskin_cat)) deallocate(FIA%Tskin_cat)
 
+  if (associated(FIA%tabular_calve_mask)) deallocate(FIA%tabular_calve_mask)
+  if (associated(FIA%mass_shelf)) deallocate(FIA%mass_shelf)
+  if (associated(FIA%area_shelf_h)) deallocate(FIA%area_shelf_h)
+
   deallocate(FIA)
 end subroutine dealloc_fast_ice_avg
 
@@ -2201,6 +2229,8 @@ subroutine dealloc_ice_ocean_flux(IOF)
   if (associated(IOF%mass_berg)) deallocate(IOF%mass_berg)
   if (associated(IOF%ustar_berg)) deallocate(IOF%ustar_berg)
   if (associated(IOF%area_berg)) deallocate(IOF%area_berg)
+  if (associated(IOF%frac_cberg)) deallocate(IOF%frac_cberg)
+  if (associated(IOF%frac_cberg_calved)) deallocate(IOF%frac_cberg_calved)
 
   deallocate(IOF)
 end subroutine dealloc_ice_ocean_flux

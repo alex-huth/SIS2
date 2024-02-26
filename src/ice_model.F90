@@ -467,12 +467,15 @@ subroutine unpack_ocean_ice_boundary_calved_shelf_bergs(Ice, OIB)
   i_off = LBOUND(OIB%calving,1) - G%isc ; j_off = LBOUND(OIB%calving,2) - G%jsc
   !$OMP parallel do default(none) shared(isc,iec,jsc,jec,FIA,OIB,i_off,j_off,G,US) &
   !$OMP                          private(i2,j2)
-  do j=jsc,jec ; do i=isc,iec ; if (G%mask2dT(i,j) > 0.0) then
+  do j=jsc,jec ; do i=isc,iec
     i2 = i+i_off ; j2 = j+j_off
     !if (FIA%calving(i,j)>0.0 .and. OIB%calving(i2,j2)>0.0) &
     !        call SIS_error(FATAL,"Overlap in calving from snow discharge and ice shelf!")
     FIA%calving(i,j) = FIA%calving(i,j) + US%kg_m2s_to_RZ_T*OIB%calving(i2,j2)
     FIA%calving_hflx(i,j) = FIA%calving_hflx(i,j) + US%W_m2_to_QRZ_T*OIB%calving_hflx(i2,j2)
+    if (associated(OIB%tabular_calve_mask)) FIA%tabular_calve_mask(i,j) = OIB%tabular_calve_mask(i2,j2) ![nondim]
+    if (associated(OIB%mass_shelf)) FIA%mass_shelf(i,j) = OIB%mass_shelf(i2,j2)!*US%kg_m2_to_RZ
+    if (associated(OIB%area_shelf_h)) FIA%area_shelf_h(i,j) = OIB%area_shelf_h(i2,j2)!*US%m_to_L**2
   endif ; enddo ; enddo
 
   if (Ice%sCS%debug) then
@@ -764,6 +767,10 @@ subroutine set_ocean_top_dyn_fluxes(Ice, IOF, FIA, G, US, sCS)
       Ice%mass_berg(:,:) = IOF%mass_berg(:,:)
       if (associated(IOF%ustar_berg)) Ice%ustar_berg(:,:) = IOF%ustar_berg(:,:)
       if (associated(IOF%area_berg))  Ice%area_berg(:,:) = IOF%area_berg(:,:)
+      if (sCS%calve_tabular_bergs) then
+        Ice%frac_cberg(:,:) = IOF%frac_cberg(:,:)
+        Ice%frac_cberg_calved(:,:) = IOF%frac_cberg_calved(:,:)
+      endif
     endif
   endif
 
@@ -1756,7 +1763,7 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
   logical :: transmute_ice  ! If true, allow ice to be transmuted directly into seawater with a
                             ! spatially varying rate as a form of outflow open boundary condition.
   logical :: atmos_winds, slp2ocean
-  logical :: do_icebergs, pass_iceberg_area_to_ocean
+  logical :: do_icebergs, pass_iceberg_area_to_ocean, calve_tabular_bergs
   logical :: pass_stress_mag
   logical :: do_ridging
   logical :: specified_ice    ! If true, the ice is specified and there is no dynamics.
@@ -1974,7 +1981,17 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
   if (do_icebergs) then
     call get_param(param_file, mdl, "PASS_ICEBERG_AREA_TO_OCEAN", pass_iceberg_area_to_ocean, &
                  "If true, iceberg area is passed through coupler", default=.false.)
-  else ; pass_iceberg_area_to_ocean = .false. ; endif
+    call get_param(param_file, mdl, "CALVE_TABULAR_BERGS", calve_tabular_bergs, &
+                 "If true, the cell fractions of bonded-particle icebergs that are "//&
+                 "partially-calved or fully-calved from the ice shelf are passed through "//&
+                 "the coupler. Pass_iceberg_area_to_ocean must be true.", default=.false.)
+    if (calve_tabular_bergs .and. (.not. pass_iceberg_area_to_ocean)) then
+      call SIS_error(FATAL, "ice_model_init: "//&
+        "PASS_ICEBERG_AREA_TO_OCEAN must be true if CALVE_TABULAR_BERGS is true.")
+    endif
+  else
+    pass_iceberg_area_to_ocean = .false.; calve_tabular_bergs=.false.
+  endif
 
   call get_param(param_file, mdl, "ADD_DIURNAL_SW", add_diurnal_sw, &
                  "If true, add a synthetic diurnal cycle to the shortwave radiation.", &
@@ -2078,6 +2095,7 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
 
     Ice%sCS%do_icebergs = do_icebergs
     Ice%sCS%pass_iceberg_area_to_ocean = pass_iceberg_area_to_ocean
+    Ice%sCS%calve_tabular_bergs = calve_tabular_bergs
     Ice%sCS%pass_stress_mag = pass_stress_mag
     Ice%sCS%slab_ice = slab_ice
     Ice%sCS%specified_ice = specified_ice
@@ -2157,10 +2175,12 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
     call alloc_simple_OSS(Ice%sCS%sOSS, sHI, gas_fields_ocn)
 
     call alloc_ice_ocean_flux(Ice%sCS%IOF, sHI, do_stress_mag=Ice%sCS%pass_stress_mag, &
-                              do_iceberg_fields=Ice%sCS%do_icebergs, do_transmute=transmute_ice)
+                              do_iceberg_fields=Ice%sCS%do_icebergs, do_transmute=transmute_ice, &
+                              do_tabular_calving=Ice%sCS%calve_tabular_bergs)
     Ice%sCS%IOF%slp2ocean = slp2ocean
     Ice%sCS%IOF%flux_uv_stagger = Ice%flux_uv_stagger
-    call alloc_fast_ice_avg(Ice%sCS%FIA, sHI, sIG, interp_fluxes, gas_fluxes, ice_sheet_enabled=do_IS)
+    call alloc_fast_ice_avg(Ice%sCS%FIA, sHI, sIG, interp_fluxes, gas_fluxes, ice_sheet_enabled=do_IS, &
+                            tabular_calving = Ice%sCS%calve_tabular_bergs)
 
     if (Ice%sCS%redo_fast_update) then
       call alloc_total_sfc_flux(Ice%sCS%TSF, sHI, gas_fluxes)
@@ -2565,7 +2585,8 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
                 sG%mask2dT(isc-1:iec+1,jsc-1:jec+1), &
                 US%L_to_m*sG%dxCv(isc-1:iec+1,jsc-1:jec+1), US%L_to_m*sG%dyCu(isc-1:iec+1,jsc-1:jec+1), &
                 Ice%area,  sG%cos_rot(isc-1:iec+1,jsc-1:jec+1), &
-                sG%sin_rot(isc-1:iec+1,jsc-1:jec+1), maskmap=sGD%maskmap )
+                sG%sin_rot(isc-1:iec+1,jsc-1:jec+1), maskmap=sGD%maskmap, &
+                tabular_calving = Ice%sCS%calve_tabular_bergs)
       else
         call icebergs_init(Ice%icebergs, sGD%niglobal, sGD%njglobal, &
                  sGD%layout, sGD%io_layout, Ice%axes(1:2), &
@@ -2574,7 +2595,7 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
                  sG%mask2dT(isc-1:iec+1,jsc-1:jec+1), &
                  US%L_to_m*sG%dxCv(isc-1:iec+1,jsc-1:jec+1), US%L_to_m*sG%dyCu(isc-1:iec+1,jsc-1:jec+1), &
                  Ice%area, sG%cos_rot(isc-1:iec+1,jsc-1:jec+1), &
-                 sG%sin_rot(isc-1:iec+1,jsc-1:jec+1) )
+                 sG%sin_rot(isc-1:iec+1,jsc-1:jec+1), tabular_calving = Ice%sCS%calve_tabular_bergs)
       endif
     endif
 
