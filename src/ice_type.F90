@@ -109,6 +109,10 @@ type ice_data_type !  ice_public_type
     ustar_berg => NULL(), &  !< ustar contribution below icebergs [m s-1]
     area_berg => NULL(),  &  !< fraction of grid cell covered by icebergs in [m2 m-2]
     mass_berg => NULL(),  &  !< mass of icebergs in [kg m-2]
+    frac_cberg => NULL(), &  !< Cell fraction of partially-calved bonded bergs from
+                             !! the ice sheet [nondim]
+    frac_cberg_calved => NULL(), & !< Cell fraction of fully-calved bonded bergs from
+                                   !! the ice sheet [nondim]
     runoff_hflx => NULL(), &  !< The heat flux associated with runoff, based on
                               !! the temperature difference relative to a
                               !! reference temperature, in ???.
@@ -217,6 +221,10 @@ subroutine ice_type_slow_reg_restarts(domain, CatIce, param_file, Ice, &
     call safe_alloc_ptr(Ice%ustar_berg, isc, iec, jsc, jec)
     call safe_alloc_ptr(Ice%area_berg, isc, iec, jsc, jec)
     call safe_alloc_ptr(Ice%mass_berg, isc, iec, jsc, jec)
+    if ( Ice%sCS%calve_tabular_bergs) then
+      call safe_alloc_ptr(Ice%frac_cberg, isc, iec, jsc, jec)
+      call safe_alloc_ptr(Ice%frac_cberg_calved, isc, iec, jsc, jec)
+    endif
   endif
 
   if (present(gas_fluxes)) &
@@ -248,6 +256,11 @@ subroutine ice_type_slow_reg_restarts(domain, CatIce, param_file, Ice, &
       call register_restart_field(Ice_restart, 'ustar_berg', Ice%ustar_berg, mandatory=.false.)
       call register_restart_field(Ice_restart, 'area_berg', Ice%area_berg, mandatory=.false.)
       call register_restart_field(Ice_restart, 'mass_berg', Ice%mass_berg, mandatory=.false.)
+      if ( Ice%sCS%calve_tabular_bergs) then
+        call register_restart_field(Ice_restart, 'frac_cberg', Ice%frac_cberg, mandatory=.false.)
+        call register_restart_field(Ice_restart, 'frac_cberg_calved', &
+                                    Ice%frac_cberg_calved, mandatory=.false.)
+      endif
     endif
   endif
 end subroutine ice_type_slow_reg_restarts
@@ -357,6 +370,9 @@ subroutine dealloc_Ice_arrays(Ice)
   if (associated(Ice%area_berg)) deallocate(Ice%area_berg)
   if (associated(Ice%mass_berg)) deallocate(Ice%mass_berg)
 
+  if (associated(Ice%frac_cberg)) deallocate(Ice%frac_cberg)
+  if (associated(Ice%frac_cberg_calved)) deallocate(Ice%frac_cberg_calved)
+
 end subroutine dealloc_Ice_arrays
 
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
@@ -431,6 +447,10 @@ subroutine Ice_public_type_chksum(mesg, Ice, check_fast, check_slow, check_rough
     call chksum(Ice%ustar_berg, trim(mesg)//" Ice%ustar_berg")
     call chksum(Ice%area_berg, trim(mesg)//" Ice%area_berg")
     call chksum(Ice%mass_berg, trim(mesg)//" Ice%mass_berg")
+    if (Ice%sCS%calve_tabular_bergs) then
+      call chksum(Ice%frac_cberg, trim(mesg)//" Ice%frac_cberg")
+      call chksum(Ice%frac_cberg_calved, trim(mesg)//" Ice%frac_cberg_calved")
+    endif
   endif ; endif
 end subroutine Ice_public_type_chksum
 
@@ -689,6 +709,12 @@ subroutine ice_data_type_chksum(mesg, timestep, Ice, init_call)
       chks = SIS_chksum(Ice%ustar_berg    ) ; if (root) write(outunit,100) 'ice_data_type%ustar_berg      ', chks
       chks = SIS_chksum(Ice%area_berg     ) ; if (root) write(outunit,100) 'ice_data_type%area_berg       ', chks
       chks = SIS_chksum(Ice%mass_berg     ) ; if (root) write(outunit,100) 'ice_data_type%mass_berg       ', chks
+      if ( Ice%sCS%calve_tabular_bergs) then
+        chks = SIS_chksum(Ice%frac_cberg       )
+        if (root) write(outunit,100) 'ice_data_type%frac_cberg       ', chks
+        chks = SIS_chksum(Ice%frac_cberg_calved)
+        if (root) write(outunit,100) 'ice_data_type%frac_cberg_calved', chks
+      endif
     endif ; endif
   endif
 

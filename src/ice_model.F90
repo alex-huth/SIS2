@@ -740,6 +740,10 @@ subroutine set_ocean_top_dyn_fluxes(Ice, IOF, FIA, G, US, sCS)
       Ice%mass_berg(:,:) = IOF%mass_berg(:,:)
       if (associated(IOF%ustar_berg)) Ice%ustar_berg(:,:) = IOF%ustar_berg(:,:)
       if (associated(IOF%area_berg))  Ice%area_berg(:,:) = IOF%area_berg(:,:)
+      if (sCS%calve_tabular_bergs) then
+        Ice%frac_cberg(:,:) = IOF%frac_cberg(:,:)
+        Ice%frac_cberg_calved(:,:) = IOF%frac_cberg_calved(:,:)
+      endif
     endif
   endif
 

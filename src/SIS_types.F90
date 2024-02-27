@@ -393,7 +393,9 @@ type ice_ocean_flux_type
   real, pointer, dimension(:,:)   :: &
     ustar_berg => NULL(), & !< ustar contribution below icebergs [m s-1]
     area_berg => NULL(),  & !< fraction of grid cell covered by icebergs [m2 m-2]
-    mass_berg => NULL()     !< mass of icebergs [kg m-2]
+    mass_berg => NULL(),  & !< mass of icebergs [kg m-2]
+    frac_cberg => NULL(), & !< Cell fraction of partially-calved bonded bergs from the ice sheet [nondim]
+    frac_cberg_calved => NULL() !< Cell fraction of fully-calved bonded bergs from the ice sheet [nondim]
 
   ! These arrays are used for enthalpy change diagnostics in the slow thermodynamics.
   real, allocatable, dimension(:,:)   :: &
@@ -428,7 +430,7 @@ type ice_ocean_flux_type
   integer :: id_saltf=-1
   ! The following are diagnostic IDs for iceberg-related fields.  These are only
   ! used if the iceberg code is activated.
-  integer ::  id_ustar_berg=-1, id_area_berg=-1, id_mass_berg=-1
+  integer ::  id_ustar_berg=-1, id_area_berg=-1, id_mass_berg=-1, id_frac_cberg=-1, id_frac_cberg_calved=-1
   !!@}
 end type ice_ocean_flux_type
 
@@ -964,6 +966,10 @@ subroutine alloc_ice_ocean_flux(IOF, HI, do_stress_mag, do_iceberg_fields, do_tr
     allocate(IOF%mass_berg(HI%isc:HI%iec, HI%jsc:HI%jec), source=0.0)
     allocate(IOF%ustar_berg(HI%isc:HI%iec, HI%jsc:HI%jec), source=0.0)
     allocate(IOF%area_berg(HI%isc:HI%iec, HI%jsc:HI%jec), source=0.0)
+    if (calve_tabular_bergs) then
+      allocate(IOF%frac_cberg(HI%isc:HI%iec, HI%jsc:HI%jec), source=0.0)
+      allocate(IOF%frac_cberg_calved(HI%isc:HI%iec, HI%jsc:HI%jec), source=0.0)
+    endif
   endif
 
 end subroutine alloc_ice_ocean_flux
@@ -2201,6 +2207,8 @@ subroutine dealloc_ice_ocean_flux(IOF)
   if (associated(IOF%mass_berg)) deallocate(IOF%mass_berg)
   if (associated(IOF%ustar_berg)) deallocate(IOF%ustar_berg)
   if (associated(IOF%area_berg)) deallocate(IOF%area_berg)
+  if (associated(IOF%frac_cberg)) deallocate(IOF%frac_cberg)
+  if (associated(IOF%frac_cberg_calved)) deallocate(IOF%frac_cberg_calved)
 
   deallocate(IOF)
 end subroutine dealloc_ice_ocean_flux

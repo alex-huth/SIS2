@@ -353,6 +353,12 @@ subroutine ice_diagnostics_init(IOF, OSS, FIA, G, US, IG, diag, Time, Cgrid)
   if (associated(IOF%mass_berg)) &
     IOF%id_mass_berg  = register_SIS_diag_field('ice_model', 'MASS_BERG', diag%axesT1, Time, &
                'icebergs mass', 'kg/m2', missing_value=missing)
+  if (associated(IOF%frac_cberg)) &
+    IOF%id_frac_cberg  = register_SIS_diag_field('ice_model', 'FRAC_CBERG', diag%axesT1, Time, &
+               'cell fraction of partially-calved tabular bonded bergs', 'none', missing_value=missing)
+  if (associated(IOF%frac_cberg)) &
+    IOF%id_frac_cberg_calved  = register_SIS_diag_field('ice_model', 'FRAC_CBERG_CALVED', diag%axesT1, Time, &
+               'cell fraction of fully-calved tabular bonded bergs', 'none', missing_value=missing)
 
   ! Write out static fields.
 
