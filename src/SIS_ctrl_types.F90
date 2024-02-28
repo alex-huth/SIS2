@@ -103,6 +103,9 @@ type SIS_slow_CS
                             !! modifies the calving field among other things.
   logical :: pass_iceberg_area_to_ocean !< If true, iceberg area is passed through coupler
                             !! (must have ICEBERGS_APPLY_RIGID_BOUNDARY=True in MOM_input)
+  logical :: calve_tabular_bergs !< If true, the cell fractions of bonded-particle icebergs that are
+                            !! partially-calved or fully-calved from the ice shelf are passed through
+                            !! the coupler. Pass_iceberg_area_to_ocean must be true.
   logical :: berg_windstress_bug = .false. !< If true, use older code that applied
                             !! an old ice-ocean stress to the icebergs in place of
                             !! the current air-ice stress.  This option exists for
