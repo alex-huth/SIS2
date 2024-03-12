@@ -454,12 +454,10 @@ subroutine unpack_ocean_ice_boundary_calved_shelf_bergs(Ice, OIB)
       FIA%calving(i,j) = US%kg_m2s_to_RZ_T*OIB%calving(i2,j2)
       FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*OIB%calving_hflx(i2,j2)
     endif
-    !The following tabular calving variables will keep their input units, which are also
-    !used for the iceberg module
-    if (allocated(OIB%calve_mask)) FIA%calve_mask(i,j) = OIB%calve_mask(i2,j2) ![nondim]
-    if (allocated(OIB%mass_shelf)) FIA%mass_shelf(i,j) = OIB%mass_shelf(i2,j2) !*US%kg_m2_to_RZ
-    if (allocated(OIB%area_shelf)) FIA%area_shelf(i,j) = OIB%area_shelf(i,j) !*US%m_to_L**2
-  endif ; enddo ; enddo
+    if (associated(OIB%tabular_calve_mask)) FIA%tabular_calve_mask(i,j) = OIB%tabular_calve_mask(i2,j2) ![nondim]
+    if (associated(OIB%mass_shelf)) FIA%mass_shelf(i,j) = OIB%mass_shelf(i2,j2)!*US%kg_m2_to_RZ
+    if (associated(OIB%area_shelf_h)) FIA%area_shelf_h(i,j) = OIB%area_shelf_h(i,j)!*US%m_to_L**2
+  enddo ; enddo
 
   if (Ice%fCS%debug) then
     call FIA_chksum("End of unpack_ocean_ice_boundary_calved_shelf_berg", FIA, G, Ice%fCS%US)
@@ -1952,12 +1950,12 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
     call get_param(param_file, mdl, "PASS_ICEBERG_AREA_TO_OCEAN", pass_iceberg_area_to_ocean, &
                  "If true, iceberg area is passed through coupler", default=.false.)
     call get_param(param_file, mdl, "CALVE_TABULAR_BERGS", calve_tabular_bergs, &
-                 "If true, the cell fractions of bonded-particle icebergs that are "//
-                 "partially-calved or fully-calved from the ice shelf are passed through "//
+                 "If true, the cell fractions of bonded-particle icebergs that are "//&
+                 "partially-calved or fully-calved from the ice shelf are passed through "//&
                  "the coupler. Pass_iceberg_area_to_ocean must be true.", default=.false.)
     if (calve_tabular_bergs .and. (.not. pass_iceberg_area_to_ocean)) then
       call SIS_error(FATAL, "ice_model_init: "//&
-        "PASS_ICEBERG_AREA_TO_OCEAN must be true if CALVE_TABULAR_BERGS is true."
+        "PASS_ICEBERG_AREA_TO_OCEAN must be true if CALVE_TABULAR_BERGS is true.")
     endif
   else
     pass_iceberg_area_to_ocean = .false.; calve_tabular_bergs=.false.

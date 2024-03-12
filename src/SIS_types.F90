@@ -224,9 +224,9 @@ type fast_ice_avg_type
   real, allocatable, dimension(:,:) :: calving_hflx_preberg !< The heat flux associated with calving
                     !! exclusive of any iceberg contributions, based on the temperature difference
                     !! relative to a reference temperature [Q R Z T-1 ~> W m-2]
-  real, allocatable, dimension(:,:), :: calve_mask !< Mask for calving of tabular bonded bergs [nondim]
-  real, allocatable, dimension(:,:), :: mass_shelf !< The ice shelf mass field [R Z ~> kg m-2]
-  real, allocatable, dimension(:,:), :: area_shelf !< The fraction of each grid cell covered by
+  real, pointer, dimension(:,:) :: tabular_calve_mask !< Mask for calving of tabular bonded bergs [nondim]
+  real, pointer, dimension(:,:) :: mass_shelf !< The ice shelf mass field [R Z ~> kg m-2]
+  real, pointer, dimension(:,:) :: area_shelf_h !< The fraction of each grid cell covered by
                     !! ice shelf [nondim]
   real, allocatable, dimension(:,:) :: Tskin_avg !< The area-weighted average skin temperature
                     !! across all ice thickness categories [C ~> degC], or 0 if there is no ice.
@@ -797,9 +797,9 @@ subroutine alloc_fast_ice_avg(FIA, HI, IG, interp_fluxes, gas_fluxes, tabular_ca
   endif
 
   if (alloc_tabular_calving) then
-    allocate(FIA%calve_mask(isd:ied, jsd:jed), source=0.0)
+    allocate(FIA%tabular_calve_mask(isd:ied, jsd:jed), source=0.0)
     allocate(FIA%mass_shelf(isd:ied, jsd:jed), source=0.0)
-    allocate(FIA%area_shelf(isd:ied, jsd:jed), source=0.0)
+    allocate(FIA%area_shelf_h(isd:ied, jsd:jed), source=0.0)
   endif
 
   allocate(FIA%flux_sw_dn(isd:ied, jsd:jed, NBANDS), source=0.0)
@@ -2141,9 +2141,9 @@ subroutine dealloc_fast_ice_avg(FIA)
   if (allocated(FIA%dlwdt)) deallocate(FIA%dlwdt)
   if (allocated(FIA%Tskin_cat)) deallocate(FIA%Tskin_cat)
 
-  if (allocated(FIA%calve_mask)) deallocate(FIA%calve_mask)
-  if (allocated(FIA%mass_shelf)) deallocate(FIA%mass_shelf)
-  if (allocated(FIA%area_shelf)) deallocate(FIA%area_shelf)
+  if (associated(FIA%tabular_calve_mask)) deallocate(FIA%tabular_calve_mask)
+  if (associated(FIA%mass_shelf)) deallocate(FIA%mass_shelf)
+  if (associated(FIA%area_shelf_h)) deallocate(FIA%area_shelf_h)
 
   deallocate(FIA)
 end subroutine dealloc_fast_ice_avg
