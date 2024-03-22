@@ -456,7 +456,7 @@ subroutine unpack_ocean_ice_boundary_calved_shelf_bergs(Ice, OIB)
     endif
     if (associated(OIB%tabular_calve_mask)) FIA%tabular_calve_mask(i,j) = OIB%tabular_calve_mask(i2,j2) ![nondim]
     if (associated(OIB%mass_shelf)) FIA%mass_shelf(i,j) = OIB%mass_shelf(i2,j2)!*US%kg_m2_to_RZ
-    if (associated(OIB%area_shelf_h)) FIA%area_shelf_h(i,j) = OIB%area_shelf_h(i,j)!*US%m_to_L**2
+    if (associated(OIB%area_shelf_h)) FIA%area_shelf_h(i,j) = OIB%area_shelf_h(i2,j2)!*US%m_to_L**2
   enddo ; enddo
 
   if (Ice%fCS%debug) then
@@ -2553,7 +2553,8 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
                 sG%mask2dT(isc-1:iec+1,jsc-1:jec+1), &
                 US%L_to_m*sG%dxCv(isc-1:iec+1,jsc-1:jec+1), US%L_to_m*sG%dyCu(isc-1:iec+1,jsc-1:jec+1), &
                 Ice%area,  sG%cos_rot(isc-1:iec+1,jsc-1:jec+1), &
-                sG%sin_rot(isc-1:iec+1,jsc-1:jec+1), maskmap=sGD%maskmap )
+                sG%sin_rot(isc-1:iec+1,jsc-1:jec+1), maskmap=sGD%maskmap, &
+                tabular_calving = Ice%sCS%calve_tabular_bergs)
       else
         call icebergs_init(Ice%icebergs, sGD%niglobal, sGD%njglobal, &
                  sGD%layout, sGD%io_layout, Ice%axes(1:2), &
@@ -2562,7 +2563,7 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
                  sG%mask2dT(isc-1:iec+1,jsc-1:jec+1), &
                  US%L_to_m*sG%dxCv(isc-1:iec+1,jsc-1:jec+1), US%L_to_m*sG%dyCu(isc-1:iec+1,jsc-1:jec+1), &
                  Ice%area, sG%cos_rot(isc-1:iec+1,jsc-1:jec+1), &
-                 sG%sin_rot(isc-1:iec+1,jsc-1:jec+1) )
+                 sG%sin_rot(isc-1:iec+1,jsc-1:jec+1), tabular_calving = Ice%sCS%calve_tabular_bergs)
       endif
     endif
 

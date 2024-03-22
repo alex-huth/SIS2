@@ -277,7 +277,7 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, US, IG, 
     enddo ; enddo
     do J=jsc-2,jec+1 ; do i=isc-1,iec+1
       v_ice_C(i,J) = US%L_T_to_m_s*IST%v_ice_C(i,J) ; v_ocn_C(i,J) = US%L_T_to_m_s*OSS%v_ocn_C(i,J)
-    enddo ; enddo
+    enddo; enddo
     call icebergs_run( icebergs_CS, CS%Time, calving, &
             u_ocn_C, v_ocn_C, u_ice_C, v_ice_C, windstr_x, windstr_y, &
             sea_lev, Temp_sfc, calving_hflx, FIA%ice_cover(isc-1:iec+1,jsc-1:jec+1), &
@@ -286,11 +286,14 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, US, IG, 
             mass_berg=IOF%mass_berg, ustar_berg=IOF%ustar_berg, &
             area_berg=IOF%area_berg, calve_mask=FIA%tabular_calve_mask, mass_shelf=FIA%mass_shelf, &
             area_shelf=FIA%area_shelf_h, frac_cberg=IOF%frac_cberg, frac_cberg_calved=IOF%frac_cberg_calved )
+    if (associated(IOF%mass_berg))        print *,'sum(mass_berg)',sum(IOF%mass_berg)
+    if (associated(IOF%frac_cberg))       print *,'sum(frac_cberg)',sum(IOF%frac_cberg)
+    if (associated(IOF%frac_cberg_calved))print *,'sum(frac_cberg_calved)',sum(IOF%frac_cberg_calved)
   else
     do J=jsc-1,jec+1 ; do I=isc-1,iec+1
       u_ice_B(I,J) = US%L_T_to_m_s*IST%u_ice_B(I,J) ; u_ocn_B(I,J) = US%L_T_to_m_s*OSS%u_ocn_B(I,J)
       v_ice_B(I,J) = US%L_T_to_m_s*IST%v_ice_B(I,J) ; v_ocn_B(I,J) = US%L_T_to_m_s*OSS%v_ocn_B(I,J)
-    enddo ; enddo
+    enddo; enddo
     call icebergs_run( icebergs_CS, CS%Time, calving, &
             u_ocn_B, v_ocn_B, u_ice_B, v_ice_B, windstr_x, windstr_y, &
             sea_lev, Temp_sfc, calving_hflx, FIA%ice_cover(isc-1:iec+1,jsc-1:jec+1), &
