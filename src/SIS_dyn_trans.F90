@@ -284,11 +284,9 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, US, IG, 
             hi_avg(isc-1:iec+1,jsc-1:jec+1), stagger=CGRID_NE, &
             stress_stagger=stress_stagger, sss=Saln_sfc, &
             mass_berg=IOF%mass_berg, ustar_berg=IOF%ustar_berg, &
-            area_berg=IOF%area_berg, calve_mask=FIA%tabular_calve_mask, mass_shelf=FIA%mass_shelf, &
-            area_shelf=FIA%area_shelf_h, frac_cberg=IOF%frac_cberg, frac_cberg_calved=IOF%frac_cberg_calved )
-    if (associated(IOF%mass_berg))        print *,'sum(mass_berg)',sum(IOF%mass_berg)
-    if (associated(IOF%frac_cberg))       print *,'sum(frac_cberg)',sum(IOF%frac_cberg)
-    if (associated(IOF%frac_cberg_calved))print *,'sum(frac_cberg_calved)',sum(IOF%frac_cberg_calved)
+            area_berg=IOF%area_berg, calve_mask=FIA%tabular_calve_mask(G%isc:G%iec, G%jsc:G%jec), &
+            mass_shelf=FIA%mass_shelf(G%isc:G%iec, G%jsc:G%jec), &
+            area_shelf=FIA%area_shelf_h(G%isc:G%iec, G%jsc:G%jec), frac_cberg=IOF%frac_cberg, frac_cberg_calved=IOF%frac_cberg_calved )
   else
     do J=jsc-1,jec+1 ; do I=isc-1,iec+1
       u_ice_B(I,J) = US%L_T_to_m_s*IST%u_ice_B(I,J) ; u_ocn_B(I,J) = US%L_T_to_m_s*OSS%u_ocn_B(I,J)
@@ -300,8 +298,9 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, US, IG, 
             hi_avg(isc-1:iec+1,jsc-1:jec+1), stagger=BGRID_NE, &
             stress_stagger=stress_stagger, sss=Saln_sfc, &
             mass_berg=IOF%mass_berg, ustar_berg=IOF%ustar_berg, &
-            area_berg=IOF%area_berg, calve_mask=FIA%tabular_calve_mask, mass_shelf=FIA%mass_shelf, &
-            area_shelf=FIA%area_shelf_h, frac_cberg=IOF%frac_cberg, frac_cberg_calved=IOF%frac_cberg_calved )
+            area_berg=IOF%area_berg, calve_mask=FIA%tabular_calve_mask(G%isc:G%iec, G%jsc:G%jec), &
+            mass_shelf=FIA%mass_shelf(G%isc:G%iec, G%jsc:G%jec), &
+            area_shelf=FIA%area_shelf_h(G%isc:G%iec, G%jsc:G%jec), frac_cberg=IOF%frac_cberg, frac_cberg_calved=IOF%frac_cberg_calved )
   endif
 
   do j=jsc,jec ; do i=isc,iec

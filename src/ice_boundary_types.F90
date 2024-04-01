@@ -41,7 +41,7 @@ type ocean_ice_boundary_type
                            !!bergs [RZ_T ~> kg m-2 s-1].
     calving_hflx => NULL(), & !< Calving heat flux [Q R Z T-1 ~> W m-2].
     tabular_calve_mask => NULL(), &   !< Mask for calving of tabular bonded bergs [nondim]
-    mass_shelf => NULL(), &   !< The ice shelf mass field [kg m-2]
+    mass_shelf => NULL(), &   !< The ice shelf mass field per ice shelf area [kg m-2]
     area_shelf_h => NULL()    !< The area in the grid cell covered by the ice shelf [m2]
   real, dimension(:,:,:), pointer :: data =>NULL() !< S collective field for "named" fields above
   integer   :: stagger = BGRID_NE  !< A flag indicating how the velocities are staggered.

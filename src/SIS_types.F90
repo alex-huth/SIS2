@@ -225,7 +225,7 @@ type fast_ice_avg_type
                     !! exclusive of any iceberg contributions, based on the temperature difference
                     !! relative to a reference temperature [Q R Z T-1 ~> W m-2]
   real, pointer, dimension(:,:) :: tabular_calve_mask => NULL()!< Mask for calving of tabular bonded bergs [nondim]
-  real, pointer, dimension(:,:) :: mass_shelf => NULL() !< The ice shelf mass field [R Z ~> kg m-2]
+  real, pointer, dimension(:,:) :: mass_shelf => NULL() !< The ice shelf mass field per ice shelf area [R Z ~> kg m-2]
   real, pointer, dimension(:,:) :: area_shelf_h => NULL() !< The fraction of each grid cell covered by
                     !! ice shelf [nondim]
   real, allocatable, dimension(:,:) :: Tskin_avg !< The area-weighted average skin temperature
