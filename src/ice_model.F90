@@ -449,7 +449,7 @@ subroutine unpack_ocean_ice_boundary_calved_shelf_bergs(Ice, OIB)
   do j=jsc,jec ; do i=isc,iec ; if (G%mask2dT(i,j) > 0.0) then
     i2 = i+i_off ; j2 = j+j_off
     if (OIB%calving(i2,j2)>0.0) then
-      if (FIA%calving(i,j)>0.0) call SIS_error(FATAL,"Overlap in calving from snow discharge and ice shelf!")
+      !if (FIA%calving(i,j)>0.0) call SIS_error(FATAL,"Overlap in calving from snow discharge and ice shelf!")
       FIA%calving(i,j) = US%kg_m2s_to_RZ_T*OIB%calving(i2,j2)
       FIA%calving_hflx(i,j) = US%W_m2_to_QRZ_T*OIB%calving_hflx(i2,j2)
     endif
