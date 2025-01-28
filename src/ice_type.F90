@@ -140,6 +140,8 @@ type ice_data_type !  ice_public_type
                           !! mpp_parameter_mod.) Following SIS, this is BGRID_NE by default when the
                           !! sea ice is initialized, but here it is set to -999 so that a global max
                           !! across ice and non-ice processors can be used to determine its value.
+  real      :: IS_adot_int_land = 0. !< The total surface mass flux to the ice sheet,
+                          !! area-integrated over the land grid (kg s-1)
 
   ! The following are actually private to SIS2, and are not used elsewhere by other FMS modules.
   type(icebergs),    pointer :: icebergs => NULL()
