@@ -116,9 +116,6 @@ type land_ice_boundary_type
     IS_adot_sg  =>NULL(), &    !< The mass flux over ice sheets [kg m-2 s-1].
     IS_mask_sg  =>NULL()       !< The mask for ice sheets [kg m-2 s-1].
   real, dimension(:,:,:), pointer :: data => NULL() !< A collective field for "named" fields above
-  ! real      :: IS_hole_adot_int = 0. !< The difference in area-integrated ice-sheet surface mass
-  !                        !! flux between the land and ice grids. Typically used to track the surface
-  !                        !! mass flux into a "hole" in the ice grid at the S. Pole [kg s-1]
   integer   :: xtype     !< A flag indicating the exchange type, which may be set to
                          !! REGRID, REDIST or DIRECT and is used by coupler
   logical   :: do_IS = .false.

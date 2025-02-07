@@ -231,8 +231,7 @@ type fast_ice_avg_type
   real, allocatable, dimension(:,:) :: ice_cover !< The fractional ice coverage, summed across all
                     !! thickness categories, used in calculating WindStr_[xy]_A, between 0 & 1 [nondim].q
   real, allocatable, dimension(:,:) :: adot  !< The optional mass flux over land ice [R Z T-1 ~> kg m-2 s-1].
-  real :: IS_hole_adot_int !< The optional surface mass flux, integrated over the area of land ice that is
-                    !! covered by the land grid, but not the ice grid
+
   integer :: copy_calls = 0 !< The number of times this structure has been
                     !! copied from the fast ice to the slow ice.
   type (coupler_3d_bc_type) :: &

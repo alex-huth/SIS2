@@ -254,6 +254,7 @@ subroutine ice_type_slow_reg_restarts(domain, CatIce, param_file, Ice, &
       call register_restart_field(Ice_restart, 'area_berg', Ice%area_berg, mandatory=.false.)
       call register_restart_field(Ice_restart, 'mass_berg', Ice%mass_berg, mandatory=.false.)
     endif
+    call register_restart_field(Ice_restart, 'IS_adot_int_land', Ice%IS_adot_int_land, mandatory=.true.)
   endif
 end subroutine ice_type_slow_reg_restarts
 
