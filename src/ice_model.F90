@@ -41,7 +41,6 @@ use MOM_time_manager,  only : operator(+), operator(-)
 use MOM_time_manager,  only : operator(>), operator(*), operator(/), operator(/=)
 use MOM_unit_scaling,  only : unit_scale_type, unit_scaling_init, unit_scaling_end
 use MOM_error_handler, only : stdout, is_root_pe
-use MOM_coms, only : root_PE, broadcast
 
 use astronomy_mod, only : astronomy_init, astronomy_end
 use astronomy_mod, only : universal_time, orbital_time, diurnal_solar, daily_mean_solar
