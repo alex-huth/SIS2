@@ -42,7 +42,7 @@ type ocean_ice_boundary_type
     calving_hflx => NULL(), & !< Calving heat flux [Q R Z T-1 ~> W m-2].
     tabular_calve_mask => NULL(), &   !< Mask for calving of tabular bonded bergs [nondim]
     mass_shelf => NULL(), &   !< The ice shelf mass field per ice shelf area [kg m-2]
-    area_shelf_h => NULL()    !< The area in the grid cell covered by the ice shelf [m2]
+    frac_shelf => NULL() !< The cell fraction covered by the ice shelf [nondim].
   real, dimension(:,:,:), pointer :: data =>NULL() !< S collective field for "named" fields above
   integer   :: stagger = BGRID_NE  !< A flag indicating how the velocities are staggered.
   integer   :: xtype     !< A flag indicating the exchange type, which may be set to

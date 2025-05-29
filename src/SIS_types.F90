@@ -226,7 +226,7 @@ type fast_ice_avg_type
                     !! relative to a reference temperature [Q R Z T-1 ~> W m-2]
   real, pointer, dimension(:,:) :: tabular_calve_mask => NULL()!< Mask for calving of tabular bonded bergs [nondim]
   real, pointer, dimension(:,:) :: mass_shelf => NULL() !< The ice shelf mass field per ice shelf area [R Z ~> kg m-2]
-  real, pointer, dimension(:,:) :: area_shelf_h => NULL() !< The fraction of each grid cell covered by
+  real, pointer, dimension(:,:) :: frac_shelf => NULL() !< The fraction of each grid cell covered by
                     !! ice shelf [nondim]
   real, allocatable, dimension(:,:) :: Tskin_avg !< The area-weighted average skin temperature
                     !! across all ice thickness categories [C ~> degC], or 0 if there is no ice.
@@ -805,7 +805,7 @@ subroutine alloc_fast_ice_avg(FIA, HI, IG, interp_fluxes, gas_fluxes, ice_sheet_
   if (alloc_tabular_calving) then
     allocate(FIA%tabular_calve_mask(isd:ied, jsd:jed), source=0.0)
     allocate(FIA%mass_shelf(isd:ied, jsd:jed), source=0.0)
-    allocate(FIA%area_shelf_h(isd:ied, jsd:jed), source=0.0)
+    allocate(FIA%frac_shelf(isd:ied, jsd:jed), source=0.0)
   endif
 
   allocate(FIA%flux_sw_dn(isd:ied, jsd:jed, NBANDS), source=0.0)
@@ -2160,7 +2160,7 @@ subroutine dealloc_fast_ice_avg(FIA)
 
   if (associated(FIA%tabular_calve_mask)) deallocate(FIA%tabular_calve_mask)
   if (associated(FIA%mass_shelf)) deallocate(FIA%mass_shelf)
-  if (associated(FIA%area_shelf_h)) deallocate(FIA%area_shelf_h)
+  if (associated(FIA%frac_shelf)) deallocate(FIA%frac_shelf)
 
   deallocate(FIA)
 end subroutine dealloc_fast_ice_avg

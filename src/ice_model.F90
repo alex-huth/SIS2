@@ -475,8 +475,8 @@ subroutine unpack_ocean_ice_boundary_calved_shelf_bergs(Ice, OIB)
     FIA%calving_hflx(i,j) = FIA%calving_hflx(i,j) + US%W_m2_to_QRZ_T*OIB%calving_hflx(i2,j2)
     if (associated(OIB%tabular_calve_mask)) FIA%tabular_calve_mask(i,j) = OIB%tabular_calve_mask(i2,j2) ![nondim]
     if (associated(OIB%mass_shelf)) FIA%mass_shelf(i,j) = OIB%mass_shelf(i2,j2)!*US%kg_m2_to_RZ
-    if (associated(OIB%area_shelf_h)) FIA%area_shelf_h(i,j) = OIB%area_shelf_h(i2,j2)!*US%m_to_L**2
-  endif ; enddo ; enddo
+    if (associated(OIB%frac_shelf)) FIA%frac_shelf(i,j) = OIB%frac_shelf(i2,j2)
+  enddo ; enddo
 
   if (Ice%sCS%debug) then
     call FIA_chksum("End of unpack_ocean_ice_boundary_calved_shelf_berg", FIA, G, Ice%sCS%US)
@@ -2584,7 +2584,7 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
                 Time, sG%geoLonBu(isc:iec,jsc:jec), sG%geoLatBu(isc:iec,jsc:jec), &
                 sG%mask2dT(isc-1:iec+1,jsc-1:jec+1), &
                 US%L_to_m*sG%dxCv(isc-1:iec+1,jsc-1:jec+1), US%L_to_m*sG%dyCu(isc-1:iec+1,jsc-1:jec+1), &
-                Ice%area,  sG%cos_rot(isc-1:iec+1,jsc-1:jec+1), &
+                US%L_to_m**2*sG%areaT,  sG%cos_rot(isc-1:iec+1,jsc-1:jec+1), &
                 sG%sin_rot(isc-1:iec+1,jsc-1:jec+1), maskmap=sGD%maskmap, &
                 tabular_calving = Ice%sCS%calve_tabular_bergs)
       else
@@ -2594,7 +2594,7 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow, 
                  Time, sG%geoLonBu(isc:iec,jsc:jec), sG%geoLatBu(isc:iec,jsc:jec), &
                  sG%mask2dT(isc-1:iec+1,jsc-1:jec+1), &
                  US%L_to_m*sG%dxCv(isc-1:iec+1,jsc-1:jec+1), US%L_to_m*sG%dyCu(isc-1:iec+1,jsc-1:jec+1), &
-                 Ice%area, sG%cos_rot(isc-1:iec+1,jsc-1:jec+1), &
+                 US%L_to_m**2*sG%areaT, sG%cos_rot(isc-1:iec+1,jsc-1:jec+1), &
                  sG%sin_rot(isc-1:iec+1,jsc-1:jec+1), tabular_calving = Ice%sCS%calve_tabular_bergs)
       endif
     endif

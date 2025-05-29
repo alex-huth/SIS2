@@ -248,7 +248,6 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, US, IG, 
     calving(i,j) = US%RZ_T_to_kg_m2s*FIA%calving(i,j)
     calving_hflx(i,j) = US%QRZ_T_to_W_m2*FIA%calving_hflx(i,j)
     if (associated(FIA%mass_shelf)) FIA%mass_shelf(i,j)=US%RZ_to_kg_m2**2*FIA%mass_shelf(i,j)
-    if (associated(FIA%area_shelf_h)) FIA%area_shelf_h(i,j)=US%L_to_m**2*FIA%area_shelf_h(i,j)
     Saln_sfc(i,j) = US%S_to_ppt*OSS%s_surf(i,j)
     Temp_sfc(i,j) = US%C_to_degC*OSS%SST_C(i,j)
   enddo ; enddo
@@ -287,7 +286,7 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, US, IG, 
             mass_berg=IOF%mass_berg, ustar_berg=IOF%ustar_berg, &
             area_berg=IOF%area_berg, calve_mask=FIA%tabular_calve_mask(G%isc:G%iec, G%jsc:G%jec), &
             mass_shelf=FIA%mass_shelf(G%isc:G%iec, G%jsc:G%jec), &
-            area_shelf=FIA%area_shelf_h(G%isc:G%iec, G%jsc:G%jec), frac_cberg=IOF%frac_cberg, frac_cberg_calved=IOF%frac_cberg_calved )
+            frac_shelf=FIA%frac_shelf(G%isc:G%iec, G%jsc:G%jec), frac_cberg=IOF%frac_cberg, frac_cberg_calved=IOF%frac_cberg_calved )
   else
     do J=jsc-1,jec+1 ; do I=isc-1,iec+1
       u_ice_B(I,J) = US%L_T_to_m_s*IST%u_ice_B(I,J) ; u_ocn_B(I,J) = US%L_T_to_m_s*OSS%u_ocn_B(I,J)
@@ -301,7 +300,7 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, US, IG, 
             mass_berg=IOF%mass_berg, ustar_berg=IOF%ustar_berg, &
             area_berg=IOF%area_berg, calve_mask=FIA%tabular_calve_mask(G%isc:G%iec, G%jsc:G%jec), &
             mass_shelf=FIA%mass_shelf(G%isc:G%iec, G%jsc:G%jec), &
-            area_shelf=FIA%area_shelf_h(G%isc:G%iec, G%jsc:G%jec), frac_cberg=IOF%frac_cberg, frac_cberg_calved=IOF%frac_cberg_calved )
+            frac_shelf=FIA%frac_shelf(G%isc:G%iec, G%jsc:G%jec), frac_cberg=IOF%frac_cberg, frac_cberg_calved=IOF%frac_cberg_calved )
   endif
 
   do j=jsc,jec ; do i=isc,iec
