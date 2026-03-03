@@ -796,6 +796,11 @@ subroutine set_ocean_top_dyn_fluxes(Ice, IOF, FIA, G, US, sCS)
       Ice%p_surf(i2,j2) = 0.0
     endif
     Ice%p_surf(i2,j2) = Ice%p_surf(i2,j2) + US%L_T2_to_m_s2*US%L_to_Z*G%g_Earth*Ice%mi(i2,j2)
+
+    ! if (associated(IOF%mass_berg)) then
+    !   !This will be done in MOM marine_ice
+    !   Ice%p_surf(i2,j2) = Ice%p_surf(i2,j2) - US%L_T2_to_m_s2*US%L_to_Z*G%g_Earth*IOF%mass_berg(i2,j2)
+    ! endif
   enddo ; enddo
   if (associated(Ice%stress_mag) .and. allocated(IOF%stress_mag)) then
     i_off = LBOUND(Ice%stress_mag,1) - G%isc ; j_off = LBOUND(Ice%stress_mag,2) - G%jsc
